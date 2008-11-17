@@ -1,0 +1,30 @@
+name:       SHA
+version:    1.0.0
+license:    BSD3
+license-file: LICENSE
+author:     Adam Wick <awick@galois.com>
+maintainer: Adam Wick <awick@galois.com>
+stability:  stable
+build-type: Simple
+cabal-version: >= 1.2
+tested-with: GHC ==6.8.0
+synopsis: Implementations of the SHA suite of message digest functions
+description: This library implements the SHA suite of message digest functions,
+             according to NIST FIPS 180-2 (with the SHA-224 addendum). The
+             functions have been tested against most of the NIST test vectors
+             for the various functions. However, only slight attention has
+             been paid to the speed of the functions.  
+
+Library
+ build-depends: base >= 3, bytestring
+ exposed-modules: Data.Digest.Pure.SHA
+ GHC-Options: -O2 -Wall -fno-ignore-asserts
+ extensions: CPP, BangPatterns
+
+Executable test_sha
+  build-depends: base >= 3, bytestring, QuickCheck
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans 
+  cpp-options: -DSHA_TEST
+  Main-Is: Test.hs
+  Other-Modules: Data.Digest.Pure.SHA
+  extensions: CPP, BangPatterns
