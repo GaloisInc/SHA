@@ -1,4 +1,5 @@
 name:       SHA
+category:   Cryptography, Codec
 version:    1.0.0
 license:    BSD3
 license-file: LICENSE
