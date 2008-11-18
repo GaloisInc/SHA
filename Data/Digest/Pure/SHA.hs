@@ -10,6 +10,7 @@ module Data.Digest.Pure.SHA
        , sha512
        , showDigest
        , integerDigest
+       , bytestringDigest
 #ifdef SHA_TEST
        , toBigEndianBS, fromBigEndianBS
        , find_k
@@ -368,6 +369,10 @@ showDigestBS bs = concatMap paddedShowHex $ BS.unpack bs
 integerDigest :: Digest -> Integer
 integerDigest (Digest bs) = BS.foldl' addShift 0 bs
  where addShift n y = (n `shiftL` 8) .|. fromIntegral y
+
+-- | Convert a digest to a ByteString.
+bytestringDigest :: Digest -> ByteString
+bytestringDigest (Digest bs) = bs
 
 -- --------------------------------------------------------------------------
 --
