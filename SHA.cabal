@@ -1,6 +1,6 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.0.1
+version:    1.0.2
 license:    BSD3
 license-file: LICENSE
 author:     Adam Wick <awick@galois.com>
@@ -23,9 +23,13 @@ Library
  extensions: CPP, BangPatterns
 
 Executable test_sha
-  build-depends: base >= 3, bytestring, QuickCheck
+  build-depends: base >= 3, bytestring, QuickCheck >= 1 && < 2
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans 
   cpp-options: -DSHA_TEST
   Main-Is: Test.hs
   Other-Modules: Data.Digest.Pure.SHA
   extensions: CPP, BangPatterns
+
+source-repository head
+  type:		git
+  location:	git://code.haskell.org/SHA.git
