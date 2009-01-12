@@ -7,7 +7,7 @@ author:     Adam Wick <awick@galois.com>
 maintainer: Adam Wick <awick@galois.com>
 stability:  stable
 build-type: Simple
-cabal-version: >= 1.2
+cabal-version: >= 1.6
 tested-with: GHC ==6.8.0
 synopsis: Implementations of the SHA suite of message digest functions
 description: This library implements the SHA suite of message digest functions,
