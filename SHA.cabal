@@ -19,12 +19,12 @@ description: This library implements the SHA suite of message digest functions,
 Library
  build-depends: base >= 3, bytestring
  exposed-modules: Data.Digest.Pure.SHA
- GHC-Options: -O2 -Wall -fno-ignore-asserts
+ GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields
  extensions: CPP, BangPatterns
 
 Executable test_sha
   build-depends: base >= 3, bytestring, QuickCheck >= 1 && < 2
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans 
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans -funbox-strict-fields
   cpp-options: -DSHA_TEST
   Main-Is: Test.hs
   Other-Modules: Data.Digest.Pure.SHA
