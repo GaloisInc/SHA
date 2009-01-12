@@ -1,6 +1,6 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.0.2
+version:    1.0.3
 license:    BSD3
 license-file: LICENSE
 author:     Adam Wick <awick@galois.com>
