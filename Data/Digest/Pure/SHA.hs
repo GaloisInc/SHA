@@ -30,6 +30,9 @@ import Data.Word
 -- | An abstract datatype for digests.
 newtype Digest = Digest ByteString deriving (Eq,Ord)
 
+instance Show Digest where
+  show = showDigest
+
 -- --------------------------------------------------------------------------
 --
 --                              SHA-1
