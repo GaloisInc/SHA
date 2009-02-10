@@ -1,6 +1,6 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.0.3
+version:    1.0.4
 license:    BSD3
 license-file: LICENSE
 author:     Adam Wick <awick@galois.com>
@@ -16,6 +16,10 @@ description: This library implements the SHA suite of message digest functions,
              for the various functions. However, only slight attention has
              been paid to the speed of the functions.  
 
+Flag Test
+ Description: Build the SHA test suite.
+ Default: False
+
 Library
  build-depends: base >= 3, bytestring
  exposed-modules: Data.Digest.Pure.SHA
@@ -29,6 +33,8 @@ Executable test_sha
   Main-Is: Test.hs
   Other-Modules: Data.Digest.Pure.SHA
   extensions: CPP, BangPatterns
+  if !flag(test)
+    buildable: False
 
 source-repository head
   type:		git
