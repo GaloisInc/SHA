@@ -43,26 +43,6 @@ instance Show Digest where
 
 -- The following arrays represent K_i.
 
-sha1_k :: UArray Int Word32
-sha1_k = listArray (0, 79)  [
-    0x5a827999, 0x5a827999, 0x5a827999, 0x5a827999, 0x5a827999  
-  , 0x5a827999, 0x5a827999, 0x5a827999, 0x5a827999, 0x5a827999  
-  , 0x5a827999, 0x5a827999, 0x5a827999, 0x5a827999, 0x5a827999  
-  , 0x5a827999, 0x5a827999, 0x5a827999, 0x5a827999, 0x5a827999
-  , 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1
-  , 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1
-  , 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1
-  , 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1, 0x6ed9eba1
-  , 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc
-  , 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc
-  , 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc
-  , 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc, 0x8f1bbcdc
-  , 0xca62c1d6, 0xca62c1d6, 0xca62c1d6, 0xca62c1d6, 0xca62c1d6
-  , 0xca62c1d6, 0xca62c1d6, 0xca62c1d6, 0xca62c1d6, 0xca62c1d6
-  , 0xca62c1d6, 0xca62c1d6, 0xca62c1d6, 0xca62c1d6, 0xca62c1d6
-  , 0xca62c1d6, 0xca62c1d6, 0xca62c1d6, 0xca62c1d6, 0xca62c1d6
-  ]
-
 sha256_k :: UArray Int Word32
 sha256_k = listArray (0, 63) [
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b
@@ -250,12 +230,18 @@ fromBigEndianBS bs =
 --
 -- --------------------------------------------------------------------------
 
+{-# SPECIALIZE ch :: Word32 -> Word32 -> Word32 -> Word32 #-}
+{-# SPECIALIZE ch :: Word64 -> Word64 -> Word64 -> Word64 #-}
 ch :: Bits a => a -> a -> a -> a
 ch x y z = (x .&. y) `xor` ((complement x) .&. z)
 
+{-# SPECIALIZE parity :: Word32 -> Word32 -> Word32 -> Word32 #-}
+{-# SPECIALIZE parity :: Word64 -> Word64 -> Word64 -> Word64 #-}
 parity :: Bits a => a -> a -> a -> a
 parity x y z = x `xor` y `xor` z
 
+{-# SPECIALIZE maj :: Word32 -> Word32 -> Word32 -> Word32 #-}
+{-# SPECIALIZE maj :: Word64 -> Word64 -> Word64 -> Word64 #-}
 maj :: Bits a => a -> a -> a -> a
 maj x y z = (x .&. y) `xor` (x .&. z) `xor` (y .&. z)
 
@@ -609,95 +595,99 @@ processSHA1Block !s00@(SHA1S a00 b00 c00 d00 e00) = do
              w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
              w60 w61 w62 w63 w64 w65 w66 w67 w68 w69
              w70 w71 w72 w73 w74 w75 w76 w77 w78 w79) <- getSHA1Sched
-  let !s01 = step s00 (sha1_k ! 00)     ch w00
-      !s02 = step s01 (sha1_k ! 01)     ch w01
-      !s03 = step s02 (sha1_k ! 02)     ch w02
-      !s04 = step s03 (sha1_k ! 03)     ch w03
-      !s05 = step s04 (sha1_k ! 04)     ch w04
-      !s06 = step s05 (sha1_k ! 05)     ch w05
-      !s07 = step s06 (sha1_k ! 06)     ch w06
-      !s08 = step s07 (sha1_k ! 07)     ch w07
-      !s09 = step s08 (sha1_k ! 08)     ch w08
-      !s10 = step s09 (sha1_k ! 09)     ch w09
-      !s11 = step s10 (sha1_k ! 10)     ch w10
-      !s12 = step s11 (sha1_k ! 11)     ch w11
-      !s13 = step s12 (sha1_k ! 12)     ch w12
-      !s14 = step s13 (sha1_k ! 13)     ch w13
-      !s15 = step s14 (sha1_k ! 14)     ch w14
-      !s16 = step s15 (sha1_k ! 15)     ch w15
-      !s17 = step s16 (sha1_k ! 16)     ch w16
-      !s18 = step s17 (sha1_k ! 17)     ch w17
-      !s19 = step s18 (sha1_k ! 18)     ch w18
-      !s20 = step s19 (sha1_k ! 19)     ch w19
-      !s21 = step s20 (sha1_k ! 20) parity w20
-      !s22 = step s21 (sha1_k ! 21) parity w21
-      !s23 = step s22 (sha1_k ! 22) parity w22
-      !s24 = step s23 (sha1_k ! 23) parity w23
-      !s25 = step s24 (sha1_k ! 24) parity w24
-      !s26 = step s25 (sha1_k ! 25) parity w25
-      !s27 = step s26 (sha1_k ! 26) parity w26
-      !s28 = step s27 (sha1_k ! 27) parity w27
-      !s29 = step s28 (sha1_k ! 28) parity w28
-      !s30 = step s29 (sha1_k ! 29) parity w29
-      !s31 = step s30 (sha1_k ! 30) parity w30
-      !s32 = step s31 (sha1_k ! 31) parity w31
-      !s33 = step s32 (sha1_k ! 32) parity w32
-      !s34 = step s33 (sha1_k ! 33) parity w33
-      !s35 = step s34 (sha1_k ! 34) parity w34
-      !s36 = step s35 (sha1_k ! 35) parity w35
-      !s37 = step s36 (sha1_k ! 36) parity w36
-      !s38 = step s37 (sha1_k ! 37) parity w37
-      !s39 = step s38 (sha1_k ! 38) parity w38
-      !s40 = step s39 (sha1_k ! 39) parity w39
-      !s41 = step s40 (sha1_k ! 40)    maj w40
-      !s42 = step s41 (sha1_k ! 41)    maj w41
-      !s43 = step s42 (sha1_k ! 42)    maj w42
-      !s44 = step s43 (sha1_k ! 43)    maj w43
-      !s45 = step s44 (sha1_k ! 44)    maj w44
-      !s46 = step s45 (sha1_k ! 45)    maj w45
-      !s47 = step s46 (sha1_k ! 46)    maj w46
-      !s48 = step s47 (sha1_k ! 47)    maj w47
-      !s49 = step s48 (sha1_k ! 48)    maj w48
-      !s50 = step s49 (sha1_k ! 49)    maj w49
-      !s51 = step s50 (sha1_k ! 50)    maj w50
-      !s52 = step s51 (sha1_k ! 51)    maj w51
-      !s53 = step s52 (sha1_k ! 52)    maj w52
-      !s54 = step s53 (sha1_k ! 53)    maj w53
-      !s55 = step s54 (sha1_k ! 54)    maj w54
-      !s56 = step s55 (sha1_k ! 55)    maj w55
-      !s57 = step s56 (sha1_k ! 56)    maj w56
-      !s58 = step s57 (sha1_k ! 57)    maj w57
-      !s59 = step s58 (sha1_k ! 58)    maj w58
-      !s60 = step s59 (sha1_k ! 59)    maj w59
-      !s61 = step s60 (sha1_k ! 60) parity w60
-      !s62 = step s61 (sha1_k ! 61) parity w61
-      !s63 = step s62 (sha1_k ! 62) parity w62
-      !s64 = step s63 (sha1_k ! 63) parity w63
-      !s65 = step s64 (sha1_k ! 64) parity w64
-      !s66 = step s65 (sha1_k ! 65) parity w65
-      !s67 = step s66 (sha1_k ! 66) parity w66
-      !s68 = step s67 (sha1_k ! 67) parity w67
-      !s69 = step s68 (sha1_k ! 68) parity w68
-      !s70 = step s69 (sha1_k ! 69) parity w69
-      !s71 = step s70 (sha1_k ! 70) parity w70
-      !s72 = step s71 (sha1_k ! 71) parity w71
-      !s73 = step s72 (sha1_k ! 72) parity w72
-      !s74 = step s73 (sha1_k ! 73) parity w73
-      !s75 = step s74 (sha1_k ! 74) parity w74
-      !s76 = step s75 (sha1_k ! 75) parity w75
-      !s77 = step s76 (sha1_k ! 76) parity w76
-      !s78 = step s77 (sha1_k ! 77) parity w77
-      !s79 = step s78 (sha1_k ! 78) parity w78
-      !s80 = step s79 (sha1_k ! 79) parity w79
+  let !s01 = step1 s00 0x5a827999     ch w00
+      !s02 = step1 s01 0x5a827999     ch w01
+      !s03 = step1 s02 0x5a827999     ch w02
+      !s04 = step1 s03 0x5a827999     ch w03
+      !s05 = step1 s04 0x5a827999     ch w04
+      !s06 = step1 s05 0x5a827999     ch w05
+      !s07 = step1 s06 0x5a827999     ch w06
+      !s08 = step1 s07 0x5a827999     ch w07
+      !s09 = step1 s08 0x5a827999     ch w08
+      !s10 = step1 s09 0x5a827999     ch w09
+      !s11 = step1 s10 0x5a827999     ch w10
+      !s12 = step1 s11 0x5a827999     ch w11
+      !s13 = step1 s12 0x5a827999     ch w12
+      !s14 = step1 s13 0x5a827999     ch w13
+      !s15 = step1 s14 0x5a827999     ch w14
+      !s16 = step1 s15 0x5a827999     ch w15
+      !s17 = step1 s16 0x5a827999     ch w16
+      !s18 = step1 s17 0x5a827999     ch w17
+      !s19 = step1 s18 0x5a827999     ch w18
+      !s20 = step1 s19 0x5a827999     ch w19
+      !s21 = step1 s20 0x6ed9eba1 parity w20
+      !s22 = step1 s21 0x6ed9eba1 parity w21
+      !s23 = step1 s22 0x6ed9eba1 parity w22
+      !s24 = step1 s23 0x6ed9eba1 parity w23
+      !s25 = step1 s24 0x6ed9eba1 parity w24
+      !s26 = step1 s25 0x6ed9eba1 parity w25
+      !s27 = step1 s26 0x6ed9eba1 parity w26
+      !s28 = step1 s27 0x6ed9eba1 parity w27
+      !s29 = step1 s28 0x6ed9eba1 parity w28
+      !s30 = step1 s29 0x6ed9eba1 parity w29
+      !s31 = step1 s30 0x6ed9eba1 parity w30
+      !s32 = step1 s31 0x6ed9eba1 parity w31
+      !s33 = step1 s32 0x6ed9eba1 parity w32
+      !s34 = step1 s33 0x6ed9eba1 parity w33
+      !s35 = step1 s34 0x6ed9eba1 parity w34
+      !s36 = step1 s35 0x6ed9eba1 parity w35
+      !s37 = step1 s36 0x6ed9eba1 parity w36
+      !s38 = step1 s37 0x6ed9eba1 parity w37
+      !s39 = step1 s38 0x6ed9eba1 parity w38
+      !s40 = step1 s39 0x6ed9eba1 parity w39
+      !s41 = step1 s40 0x8f1bbcdc    maj w40
+      !s42 = step1 s41 0x8f1bbcdc    maj w41
+      !s43 = step1 s42 0x8f1bbcdc    maj w42
+      !s44 = step1 s43 0x8f1bbcdc    maj w43
+      !s45 = step1 s44 0x8f1bbcdc    maj w44
+      !s46 = step1 s45 0x8f1bbcdc    maj w45
+      !s47 = step1 s46 0x8f1bbcdc    maj w46
+      !s48 = step1 s47 0x8f1bbcdc    maj w47
+      !s49 = step1 s48 0x8f1bbcdc    maj w48
+      !s50 = step1 s49 0x8f1bbcdc    maj w49
+      !s51 = step1 s50 0x8f1bbcdc    maj w50
+      !s52 = step1 s51 0x8f1bbcdc    maj w51
+      !s53 = step1 s52 0x8f1bbcdc    maj w52
+      !s54 = step1 s53 0x8f1bbcdc    maj w53
+      !s55 = step1 s54 0x8f1bbcdc    maj w54
+      !s56 = step1 s55 0x8f1bbcdc    maj w55
+      !s57 = step1 s56 0x8f1bbcdc    maj w56
+      !s58 = step1 s57 0x8f1bbcdc    maj w57
+      !s59 = step1 s58 0x8f1bbcdc    maj w58
+      !s60 = step1 s59 0x8f1bbcdc    maj w59
+      !s61 = step1 s60 0xca62c1d6 parity w60
+      !s62 = step1 s61 0xca62c1d6 parity w61
+      !s63 = step1 s62 0xca62c1d6 parity w62
+      !s64 = step1 s63 0xca62c1d6 parity w63
+      !s65 = step1 s64 0xca62c1d6 parity w64
+      !s66 = step1 s65 0xca62c1d6 parity w65
+      !s67 = step1 s66 0xca62c1d6 parity w66
+      !s68 = step1 s67 0xca62c1d6 parity w67
+      !s69 = step1 s68 0xca62c1d6 parity w68
+      !s70 = step1 s69 0xca62c1d6 parity w69
+      !s71 = step1 s70 0xca62c1d6 parity w70
+      !s72 = step1 s71 0xca62c1d6 parity w71
+      !s73 = step1 s72 0xca62c1d6 parity w72
+      !s74 = step1 s73 0xca62c1d6 parity w73
+      !s75 = step1 s74 0xca62c1d6 parity w74
+      !s76 = step1 s75 0xca62c1d6 parity w75
+      !s77 = step1 s76 0xca62c1d6 parity w76
+      !s78 = step1 s77 0xca62c1d6 parity w77
+      !s79 = step1 s78 0xca62c1d6 parity w78
+      !s80 = step1 s79 0xca62c1d6 parity w79
       SHA1S a80 b80 c80 d80 e80 = s80
   return $ SHA1S (a00 + a80) (b00 + b80) (c00 + c80) (d00 + d80) (e00 + e80)
- where
-  step (SHA1S a b c d e) k f w = SHA1S a' b' c' d' e'
-   where a' = (rotate a 5) + (f b c d) + e + k + w
-         b' = a
-         c' = rotate b 30
-         d' = c
-         e' = d
+
+{-# INLINE step1 #-} 
+step1 :: SHA1State -> Word32 -> 
+         (Word32 -> Word32 -> Word32 -> Word32) -> Word32 -> 
+         SHA1State
+step1 (SHA1S a b c d e) !k !f !w = SHA1S a' b' c' d' e'
+ where a' = (rotate a 5) + (f b c d) + e + k + w
+       b' = a
+       c' = rotate b 30
+       d' = c
+       e' = d
    
 processSHA256Block :: SHA256State -> Get SHA256State
 processSHA256Block !s00@(SHA256S a00 b00 c00 d00 e00 f00 g00 h00) = do
