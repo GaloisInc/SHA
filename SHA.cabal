@@ -40,11 +40,21 @@ Executable test_sha
   if !flag(test)
     buildable: False
 
+Executable sha1
+  build-depends: base >= 3, bytestring, binary, array, directory
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields
+  Main-Is: Main.hs
+  extensions: CPP, BangPatterns
+  cpp-options: -DALGORITHM=sha1
+  if !flag(exe)
+    buildable: False
+
 Executable sha384
   build-depends: base >= 3, bytestring, binary, array, directory
   GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields
   Main-Is: Main.hs
   extensions: CPP, BangPatterns
+  cpp-options: -DALGORITHM=sha384
   if !flag(exe)
     buildable: False
 

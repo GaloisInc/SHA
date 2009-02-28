@@ -7,30 +7,31 @@ import System.Exit
 
 main :: IO ()
 main = do
+  bname <- getProgName
   args <- getArgs
   case args of
     [] -> do
       inconts <- BS.getContents
-      putStrLn $ show $ sha384 inconts
+      putStrLn $ show $ ALGORITHM inconts
       exitSuccess
     xs -> do
-      exit_code <- foldM sha384_file ExitSuccess xs
+      exit_code <- foldM (sha_file bname) ExitSuccess xs
       exitWith exit_code 
 
-sha384_file :: ExitCode -> String -> IO ExitCode
-sha384_file prevEC fname = do
+sha_file :: String -> ExitCode -> String -> IO ExitCode
+sha_file bname prevEC fname = do
   is_file <- doesFileExist fname
   is_dir  <- doesDirectoryExist fname
   case (is_file, is_dir) of
     (False, False) -> do
-      putStrLn $ "sha384: " ++ fname ++ ": No such file or directory"
+      putStrLn $ bname ++ ": " ++ fname ++ ": No such file or directory"
       return $ ExitFailure 22 -- EINVAL
     (False, True)  -> do
-      putStrLn $ "sha384: " ++ fname ++ ": Is a directory"
+      putStrLn $ bname ++ ": " ++ fname ++ ": Is a directory"
       return $ ExitFailure 22 -- EINVAL
     (True,  _)     -> do
       conts <- BS.readFile fname
-      putStrLn $ "sha384 (" ++ fname ++ ") = " ++ show (sha384 conts)
+      putStrLn $ bname ++ " (" ++ fname ++ ") = " ++ show (ALGORITHM conts)
       return $ combineExitCodes prevEC ExitSuccess
 
 combineExitCodes :: ExitCode -> ExitCode -> ExitCode
