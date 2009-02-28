@@ -20,6 +20,10 @@ Flag Test
  Description: Build the SHA test suite.
  Default: False
 
+Flag exe
+ Description: Build a SHA2-384 executable similar to 'md5sum'
+ Default: False
+
 Library
  build-depends: base >= 3, bytestring
  exposed-modules: Data.Digest.Pure.SHA
@@ -34,6 +38,14 @@ Executable test_sha
   Other-Modules: Data.Digest.Pure.SHA
   extensions: CPP, BangPatterns
   if !flag(test)
+    buildable: False
+
+Executable sha384
+  build-depends: base >= 3, bytestring, directory
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields
+  Main-Is: Main.hs
+  extensions: CPP, BangPatterns
+  if !flag(exe)
     buildable: False
 
 source-repository head
