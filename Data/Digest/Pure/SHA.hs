@@ -19,7 +19,6 @@ module Data.Digest.Pure.SHA
        )
  where
 
-import qualified Data.Array as Arr
 import Data.Array.Unboxed
 import Data.Binary.Get
 import Data.Binary.Put
@@ -250,26 +249,6 @@ fromBigEndianBS bs =
 -- SHA Functions
 --
 -- --------------------------------------------------------------------------
-
-sha1_f :: Arr.Array Int (Word32 -> Word32 -> Word32 -> Word32)
-sha1_f = Arr.listArray (0,79) [
-        ch,     ch,     ch,     ch,     ch
-  ,     ch,     ch,     ch,     ch,     ch
-  ,     ch,     ch,     ch,     ch,     ch
-  ,     ch,     ch,     ch,     ch,     ch
-  , parity, parity, parity, parity, parity
-  , parity, parity, parity, parity, parity
-  , parity, parity, parity, parity, parity
-  , parity, parity, parity, parity, parity
-  ,    maj,    maj,    maj,    maj,    maj
-  ,    maj,    maj,    maj,    maj,    maj
-  ,    maj,    maj,    maj,    maj,    maj
-  ,    maj,    maj,    maj,    maj,    maj
-  , parity, parity, parity, parity, parity
-  , parity, parity, parity, parity, parity
-  , parity, parity, parity, parity, parity
-  , parity, parity, parity, parity, parity
-  ]
 
 ch :: Bits a => a -> a -> a -> a
 ch x y z = (x .&. y) `xor` ((complement x) .&. z)
@@ -630,86 +609,86 @@ processSHA1Block !s00@(SHA1S a00 b00 c00 d00 e00) = do
              w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
              w60 w61 w62 w63 w64 w65 w66 w67 w68 w69
              w70 w71 w72 w73 w74 w75 w76 w77 w78 w79) <- getSHA1Sched
-  let !s01 = step s00 (sha1_k ! 00) (sha1_f Arr.! 00) w00
-      !s02 = step s01 (sha1_k ! 01) (sha1_f Arr.! 01) w01
-      !s03 = step s02 (sha1_k ! 02) (sha1_f Arr.! 02) w02
-      !s04 = step s03 (sha1_k ! 03) (sha1_f Arr.! 03) w03
-      !s05 = step s04 (sha1_k ! 04) (sha1_f Arr.! 04) w04
-      !s06 = step s05 (sha1_k ! 05) (sha1_f Arr.! 05) w05
-      !s07 = step s06 (sha1_k ! 06) (sha1_f Arr.! 06) w06
-      !s08 = step s07 (sha1_k ! 07) (sha1_f Arr.! 07) w07
-      !s09 = step s08 (sha1_k ! 08) (sha1_f Arr.! 08) w08
-      !s10 = step s09 (sha1_k ! 09) (sha1_f Arr.! 09) w09
-      !s11 = step s10 (sha1_k ! 10) (sha1_f Arr.! 10) w10
-      !s12 = step s11 (sha1_k ! 11) (sha1_f Arr.! 11) w11
-      !s13 = step s12 (sha1_k ! 12) (sha1_f Arr.! 12) w12
-      !s14 = step s13 (sha1_k ! 13) (sha1_f Arr.! 13) w13
-      !s15 = step s14 (sha1_k ! 14) (sha1_f Arr.! 14) w14
-      !s16 = step s15 (sha1_k ! 15) (sha1_f Arr.! 15) w15
-      !s17 = step s16 (sha1_k ! 16) (sha1_f Arr.! 16) w16
-      !s18 = step s17 (sha1_k ! 17) (sha1_f Arr.! 17) w17
-      !s19 = step s18 (sha1_k ! 18) (sha1_f Arr.! 18) w18
-      !s20 = step s19 (sha1_k ! 19) (sha1_f Arr.! 19) w19
-      !s21 = step s20 (sha1_k ! 20) (sha1_f Arr.! 20) w20
-      !s22 = step s21 (sha1_k ! 21) (sha1_f Arr.! 21) w21
-      !s23 = step s22 (sha1_k ! 22) (sha1_f Arr.! 22) w22
-      !s24 = step s23 (sha1_k ! 23) (sha1_f Arr.! 23) w23
-      !s25 = step s24 (sha1_k ! 24) (sha1_f Arr.! 24) w24
-      !s26 = step s25 (sha1_k ! 25) (sha1_f Arr.! 25) w25
-      !s27 = step s26 (sha1_k ! 26) (sha1_f Arr.! 26) w26
-      !s28 = step s27 (sha1_k ! 27) (sha1_f Arr.! 27) w27
-      !s29 = step s28 (sha1_k ! 28) (sha1_f Arr.! 28) w28
-      !s30 = step s29 (sha1_k ! 29) (sha1_f Arr.! 29) w29
-      !s31 = step s30 (sha1_k ! 30) (sha1_f Arr.! 30) w30
-      !s32 = step s31 (sha1_k ! 31) (sha1_f Arr.! 31) w31
-      !s33 = step s32 (sha1_k ! 32) (sha1_f Arr.! 32) w32
-      !s34 = step s33 (sha1_k ! 33) (sha1_f Arr.! 33) w33
-      !s35 = step s34 (sha1_k ! 34) (sha1_f Arr.! 34) w34
-      !s36 = step s35 (sha1_k ! 35) (sha1_f Arr.! 35) w35
-      !s37 = step s36 (sha1_k ! 36) (sha1_f Arr.! 36) w36
-      !s38 = step s37 (sha1_k ! 37) (sha1_f Arr.! 37) w37
-      !s39 = step s38 (sha1_k ! 38) (sha1_f Arr.! 38) w38
-      !s40 = step s39 (sha1_k ! 39) (sha1_f Arr.! 39) w39
-      !s41 = step s40 (sha1_k ! 40) (sha1_f Arr.! 40) w40
-      !s42 = step s41 (sha1_k ! 41) (sha1_f Arr.! 41) w41
-      !s43 = step s42 (sha1_k ! 42) (sha1_f Arr.! 42) w42
-      !s44 = step s43 (sha1_k ! 43) (sha1_f Arr.! 43) w43
-      !s45 = step s44 (sha1_k ! 44) (sha1_f Arr.! 44) w44
-      !s46 = step s45 (sha1_k ! 45) (sha1_f Arr.! 45) w45
-      !s47 = step s46 (sha1_k ! 46) (sha1_f Arr.! 46) w46
-      !s48 = step s47 (sha1_k ! 47) (sha1_f Arr.! 47) w47
-      !s49 = step s48 (sha1_k ! 48) (sha1_f Arr.! 48) w48
-      !s50 = step s49 (sha1_k ! 49) (sha1_f Arr.! 49) w49
-      !s51 = step s50 (sha1_k ! 50) (sha1_f Arr.! 50) w50
-      !s52 = step s51 (sha1_k ! 51) (sha1_f Arr.! 51) w51
-      !s53 = step s52 (sha1_k ! 52) (sha1_f Arr.! 52) w52
-      !s54 = step s53 (sha1_k ! 53) (sha1_f Arr.! 53) w53
-      !s55 = step s54 (sha1_k ! 54) (sha1_f Arr.! 54) w54
-      !s56 = step s55 (sha1_k ! 55) (sha1_f Arr.! 55) w55
-      !s57 = step s56 (sha1_k ! 56) (sha1_f Arr.! 56) w56
-      !s58 = step s57 (sha1_k ! 57) (sha1_f Arr.! 57) w57
-      !s59 = step s58 (sha1_k ! 58) (sha1_f Arr.! 58) w58
-      !s60 = step s59 (sha1_k ! 59) (sha1_f Arr.! 59) w59
-      !s61 = step s60 (sha1_k ! 60) (sha1_f Arr.! 60) w60
-      !s62 = step s61 (sha1_k ! 61) (sha1_f Arr.! 61) w61
-      !s63 = step s62 (sha1_k ! 62) (sha1_f Arr.! 62) w62
-      !s64 = step s63 (sha1_k ! 63) (sha1_f Arr.! 63) w63
-      !s65 = step s64 (sha1_k ! 64) (sha1_f Arr.! 64) w64
-      !s66 = step s65 (sha1_k ! 65) (sha1_f Arr.! 65) w65
-      !s67 = step s66 (sha1_k ! 66) (sha1_f Arr.! 66) w66
-      !s68 = step s67 (sha1_k ! 67) (sha1_f Arr.! 67) w67
-      !s69 = step s68 (sha1_k ! 68) (sha1_f Arr.! 68) w68
-      !s70 = step s69 (sha1_k ! 69) (sha1_f Arr.! 69) w69
-      !s71 = step s70 (sha1_k ! 70) (sha1_f Arr.! 70) w70
-      !s72 = step s71 (sha1_k ! 71) (sha1_f Arr.! 71) w71
-      !s73 = step s72 (sha1_k ! 72) (sha1_f Arr.! 72) w72
-      !s74 = step s73 (sha1_k ! 73) (sha1_f Arr.! 73) w73
-      !s75 = step s74 (sha1_k ! 74) (sha1_f Arr.! 74) w74
-      !s76 = step s75 (sha1_k ! 75) (sha1_f Arr.! 75) w75
-      !s77 = step s76 (sha1_k ! 76) (sha1_f Arr.! 76) w76
-      !s78 = step s77 (sha1_k ! 77) (sha1_f Arr.! 77) w77
-      !s79 = step s78 (sha1_k ! 78) (sha1_f Arr.! 78) w78
-      !s80 = step s79 (sha1_k ! 79) (sha1_f Arr.! 79) w79
+  let !s01 = step s00 (sha1_k ! 00)     ch w00
+      !s02 = step s01 (sha1_k ! 01)     ch w01
+      !s03 = step s02 (sha1_k ! 02)     ch w02
+      !s04 = step s03 (sha1_k ! 03)     ch w03
+      !s05 = step s04 (sha1_k ! 04)     ch w04
+      !s06 = step s05 (sha1_k ! 05)     ch w05
+      !s07 = step s06 (sha1_k ! 06)     ch w06
+      !s08 = step s07 (sha1_k ! 07)     ch w07
+      !s09 = step s08 (sha1_k ! 08)     ch w08
+      !s10 = step s09 (sha1_k ! 09)     ch w09
+      !s11 = step s10 (sha1_k ! 10)     ch w10
+      !s12 = step s11 (sha1_k ! 11)     ch w11
+      !s13 = step s12 (sha1_k ! 12)     ch w12
+      !s14 = step s13 (sha1_k ! 13)     ch w13
+      !s15 = step s14 (sha1_k ! 14)     ch w14
+      !s16 = step s15 (sha1_k ! 15)     ch w15
+      !s17 = step s16 (sha1_k ! 16)     ch w16
+      !s18 = step s17 (sha1_k ! 17)     ch w17
+      !s19 = step s18 (sha1_k ! 18)     ch w18
+      !s20 = step s19 (sha1_k ! 19)     ch w19
+      !s21 = step s20 (sha1_k ! 20) parity w20
+      !s22 = step s21 (sha1_k ! 21) parity w21
+      !s23 = step s22 (sha1_k ! 22) parity w22
+      !s24 = step s23 (sha1_k ! 23) parity w23
+      !s25 = step s24 (sha1_k ! 24) parity w24
+      !s26 = step s25 (sha1_k ! 25) parity w25
+      !s27 = step s26 (sha1_k ! 26) parity w26
+      !s28 = step s27 (sha1_k ! 27) parity w27
+      !s29 = step s28 (sha1_k ! 28) parity w28
+      !s30 = step s29 (sha1_k ! 29) parity w29
+      !s31 = step s30 (sha1_k ! 30) parity w30
+      !s32 = step s31 (sha1_k ! 31) parity w31
+      !s33 = step s32 (sha1_k ! 32) parity w32
+      !s34 = step s33 (sha1_k ! 33) parity w33
+      !s35 = step s34 (sha1_k ! 34) parity w34
+      !s36 = step s35 (sha1_k ! 35) parity w35
+      !s37 = step s36 (sha1_k ! 36) parity w36
+      !s38 = step s37 (sha1_k ! 37) parity w37
+      !s39 = step s38 (sha1_k ! 38) parity w38
+      !s40 = step s39 (sha1_k ! 39) parity w39
+      !s41 = step s40 (sha1_k ! 40)    maj w40
+      !s42 = step s41 (sha1_k ! 41)    maj w41
+      !s43 = step s42 (sha1_k ! 42)    maj w42
+      !s44 = step s43 (sha1_k ! 43)    maj w43
+      !s45 = step s44 (sha1_k ! 44)    maj w44
+      !s46 = step s45 (sha1_k ! 45)    maj w45
+      !s47 = step s46 (sha1_k ! 46)    maj w46
+      !s48 = step s47 (sha1_k ! 47)    maj w47
+      !s49 = step s48 (sha1_k ! 48)    maj w48
+      !s50 = step s49 (sha1_k ! 49)    maj w49
+      !s51 = step s50 (sha1_k ! 50)    maj w50
+      !s52 = step s51 (sha1_k ! 51)    maj w51
+      !s53 = step s52 (sha1_k ! 52)    maj w52
+      !s54 = step s53 (sha1_k ! 53)    maj w53
+      !s55 = step s54 (sha1_k ! 54)    maj w54
+      !s56 = step s55 (sha1_k ! 55)    maj w55
+      !s57 = step s56 (sha1_k ! 56)    maj w56
+      !s58 = step s57 (sha1_k ! 57)    maj w57
+      !s59 = step s58 (sha1_k ! 58)    maj w58
+      !s60 = step s59 (sha1_k ! 59)    maj w59
+      !s61 = step s60 (sha1_k ! 60) parity w60
+      !s62 = step s61 (sha1_k ! 61) parity w61
+      !s63 = step s62 (sha1_k ! 62) parity w62
+      !s64 = step s63 (sha1_k ! 63) parity w63
+      !s65 = step s64 (sha1_k ! 64) parity w64
+      !s66 = step s65 (sha1_k ! 65) parity w65
+      !s67 = step s66 (sha1_k ! 66) parity w66
+      !s68 = step s67 (sha1_k ! 67) parity w67
+      !s69 = step s68 (sha1_k ! 68) parity w68
+      !s70 = step s69 (sha1_k ! 69) parity w69
+      !s71 = step s70 (sha1_k ! 70) parity w70
+      !s72 = step s71 (sha1_k ! 71) parity w71
+      !s73 = step s72 (sha1_k ! 72) parity w72
+      !s74 = step s73 (sha1_k ! 73) parity w73
+      !s75 = step s74 (sha1_k ! 74) parity w74
+      !s76 = step s75 (sha1_k ! 75) parity w75
+      !s77 = step s76 (sha1_k ! 76) parity w76
+      !s78 = step s77 (sha1_k ! 77) parity w77
+      !s79 = step s78 (sha1_k ! 78) parity w78
+      !s80 = step s79 (sha1_k ! 79) parity w79
       SHA1S a80 b80 c80 d80 e80 = s80
   return $ SHA1S (a00 + a80) (b00 + b80) (c00 + c80) (d00 + d80) (e00 + e80)
  where
