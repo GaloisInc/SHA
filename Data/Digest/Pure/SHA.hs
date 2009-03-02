@@ -586,7 +586,7 @@ getSHA512Sched = do
 -- --------------------------------------------------------------------------
 
 processSHA1Block :: SHA1State -> Get SHA1State
-processSHA1Block !s00@(SHA1S a00 b00 c00 d00 e00) = do
+processSHA1Block s00@(SHA1S a00 b00 c00 d00 e00) = do
   (SHA1Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09
              w10 w11 w12 w13 w14 w15 w16 w17 w18 w19
              w20 w21 w22 w23 w24 w25 w26 w27 w28 w29
@@ -678,7 +678,7 @@ processSHA1Block !s00@(SHA1S a00 b00 c00 d00 e00) = do
       SHA1S a80 b80 c80 d80 e80 = s80
   return $ SHA1S (a00 + a80) (b00 + b80) (c00 + c80) (d00 + d80) (e00 + e80)
 
-{-# INLINE step1 #-} 
+{-# INLINE step1 #-}
 step1 :: SHA1State -> Word32 -> 
          (Word32 -> Word32 -> Word32 -> Word32) -> Word32 -> 
          SHA1State
@@ -698,86 +698,88 @@ processSHA256Block !s00@(SHA256S a00 b00 c00 d00 e00 f00 g00 h00) = do
                w40 w41 w42 w43 w44 w45 w46 w47 w48 w49
                w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
                w60 w61 w62 w63) <- getSHA256Sched
-  let !s01 = step s00 (sha256_k ! 00) w00
-      !s02 = step s01 (sha256_k ! 01) w01
-      !s03 = step s02 (sha256_k ! 02) w02
-      !s04 = step s03 (sha256_k ! 03) w03
-      !s05 = step s04 (sha256_k ! 04) w04
-      !s06 = step s05 (sha256_k ! 05) w05
-      !s07 = step s06 (sha256_k ! 06) w06
-      !s08 = step s07 (sha256_k ! 07) w07
-      !s09 = step s08 (sha256_k ! 08) w08
-      !s10 = step s09 (sha256_k ! 09) w09
-      !s11 = step s10 (sha256_k ! 10) w10
-      !s12 = step s11 (sha256_k ! 11) w11
-      !s13 = step s12 (sha256_k ! 12) w12
-      !s14 = step s13 (sha256_k ! 13) w13
-      !s15 = step s14 (sha256_k ! 14) w14
-      !s16 = step s15 (sha256_k ! 15) w15
-      !s17 = step s16 (sha256_k ! 16) w16
-      !s18 = step s17 (sha256_k ! 17) w17
-      !s19 = step s18 (sha256_k ! 18) w18
-      !s20 = step s19 (sha256_k ! 19) w19
-      !s21 = step s20 (sha256_k ! 20) w20
-      !s22 = step s21 (sha256_k ! 21) w21
-      !s23 = step s22 (sha256_k ! 22) w22
-      !s24 = step s23 (sha256_k ! 23) w23
-      !s25 = step s24 (sha256_k ! 24) w24
-      !s26 = step s25 (sha256_k ! 25) w25
-      !s27 = step s26 (sha256_k ! 26) w26
-      !s28 = step s27 (sha256_k ! 27) w27
-      !s29 = step s28 (sha256_k ! 28) w28
-      !s30 = step s29 (sha256_k ! 29) w29
-      !s31 = step s30 (sha256_k ! 30) w30
-      !s32 = step s31 (sha256_k ! 31) w31
-      !s33 = step s32 (sha256_k ! 32) w32
-      !s34 = step s33 (sha256_k ! 33) w33
-      !s35 = step s34 (sha256_k ! 34) w34
-      !s36 = step s35 (sha256_k ! 35) w35
-      !s37 = step s36 (sha256_k ! 36) w36
-      !s38 = step s37 (sha256_k ! 37) w37
-      !s39 = step s38 (sha256_k ! 38) w38
-      !s40 = step s39 (sha256_k ! 39) w39
-      !s41 = step s40 (sha256_k ! 40) w40
-      !s42 = step s41 (sha256_k ! 41) w41
-      !s43 = step s42 (sha256_k ! 42) w42
-      !s44 = step s43 (sha256_k ! 43) w43
-      !s45 = step s44 (sha256_k ! 44) w44
-      !s46 = step s45 (sha256_k ! 45) w45
-      !s47 = step s46 (sha256_k ! 46) w46
-      !s48 = step s47 (sha256_k ! 47) w47
-      !s49 = step s48 (sha256_k ! 48) w48
-      !s50 = step s49 (sha256_k ! 49) w49
-      !s51 = step s50 (sha256_k ! 50) w50
-      !s52 = step s51 (sha256_k ! 51) w51
-      !s53 = step s52 (sha256_k ! 52) w52
-      !s54 = step s53 (sha256_k ! 53) w53
-      !s55 = step s54 (sha256_k ! 54) w54
-      !s56 = step s55 (sha256_k ! 55) w55
-      !s57 = step s56 (sha256_k ! 56) w56
-      !s58 = step s57 (sha256_k ! 57) w57
-      !s59 = step s58 (sha256_k ! 58) w58
-      !s60 = step s59 (sha256_k ! 59) w59
-      !s61 = step s60 (sha256_k ! 60) w60
-      !s62 = step s61 (sha256_k ! 61) w61
-      !s63 = step s62 (sha256_k ! 62) w62
-      !s64 = step s63 (sha256_k ! 63) w63
+  let !s01 = step256 s00 (sha256_k ! 00) w00
+      !s02 = step256 s01 (sha256_k ! 01) w01
+      !s03 = step256 s02 (sha256_k ! 02) w02
+      !s04 = step256 s03 (sha256_k ! 03) w03
+      !s05 = step256 s04 (sha256_k ! 04) w04
+      !s06 = step256 s05 (sha256_k ! 05) w05
+      !s07 = step256 s06 (sha256_k ! 06) w06
+      !s08 = step256 s07 (sha256_k ! 07) w07
+      !s09 = step256 s08 (sha256_k ! 08) w08
+      !s10 = step256 s09 (sha256_k ! 09) w09
+      !s11 = step256 s10 (sha256_k ! 10) w10
+      !s12 = step256 s11 (sha256_k ! 11) w11
+      !s13 = step256 s12 (sha256_k ! 12) w12
+      !s14 = step256 s13 (sha256_k ! 13) w13
+      !s15 = step256 s14 (sha256_k ! 14) w14
+      !s16 = step256 s15 (sha256_k ! 15) w15
+      !s17 = step256 s16 (sha256_k ! 16) w16
+      !s18 = step256 s17 (sha256_k ! 17) w17
+      !s19 = step256 s18 (sha256_k ! 18) w18
+      !s20 = step256 s19 (sha256_k ! 19) w19
+      !s21 = step256 s20 (sha256_k ! 20) w20
+      !s22 = step256 s21 (sha256_k ! 21) w21
+      !s23 = step256 s22 (sha256_k ! 22) w22
+      !s24 = step256 s23 (sha256_k ! 23) w23
+      !s25 = step256 s24 (sha256_k ! 24) w24
+      !s26 = step256 s25 (sha256_k ! 25) w25
+      !s27 = step256 s26 (sha256_k ! 26) w26
+      !s28 = step256 s27 (sha256_k ! 27) w27
+      !s29 = step256 s28 (sha256_k ! 28) w28
+      !s30 = step256 s29 (sha256_k ! 29) w29
+      !s31 = step256 s30 (sha256_k ! 30) w30
+      !s32 = step256 s31 (sha256_k ! 31) w31
+      !s33 = step256 s32 (sha256_k ! 32) w32
+      !s34 = step256 s33 (sha256_k ! 33) w33
+      !s35 = step256 s34 (sha256_k ! 34) w34
+      !s36 = step256 s35 (sha256_k ! 35) w35
+      !s37 = step256 s36 (sha256_k ! 36) w36
+      !s38 = step256 s37 (sha256_k ! 37) w37
+      !s39 = step256 s38 (sha256_k ! 38) w38
+      !s40 = step256 s39 (sha256_k ! 39) w39
+      !s41 = step256 s40 (sha256_k ! 40) w40
+      !s42 = step256 s41 (sha256_k ! 41) w41
+      !s43 = step256 s42 (sha256_k ! 42) w42
+      !s44 = step256 s43 (sha256_k ! 43) w43
+      !s45 = step256 s44 (sha256_k ! 44) w44
+      !s46 = step256 s45 (sha256_k ! 45) w45
+      !s47 = step256 s46 (sha256_k ! 46) w46
+      !s48 = step256 s47 (sha256_k ! 47) w47
+      !s49 = step256 s48 (sha256_k ! 48) w48
+      !s50 = step256 s49 (sha256_k ! 49) w49
+      !s51 = step256 s50 (sha256_k ! 50) w50
+      !s52 = step256 s51 (sha256_k ! 51) w51
+      !s53 = step256 s52 (sha256_k ! 52) w52
+      !s54 = step256 s53 (sha256_k ! 53) w53
+      !s55 = step256 s54 (sha256_k ! 54) w54
+      !s56 = step256 s55 (sha256_k ! 55) w55
+      !s57 = step256 s56 (sha256_k ! 56) w56
+      !s58 = step256 s57 (sha256_k ! 57) w57
+      !s59 = step256 s58 (sha256_k ! 58) w58
+      !s60 = step256 s59 (sha256_k ! 59) w59
+      !s61 = step256 s60 (sha256_k ! 60) w60
+      !s62 = step256 s61 (sha256_k ! 61) w61
+      !s63 = step256 s62 (sha256_k ! 62) w62
+      !s64 = step256 s63 (sha256_k ! 63) w63
       SHA256S a64 b64 c64 d64 e64 f64 g64 h64 = s64
   return $ SHA256S (a00 + a64) (b00 + b64) (c00 + c64) (d00 + d64)
                    (e00 + e64) (f00 + f64) (g00 + g64) (h00 + h64)
+
+{-# INLINE step256 #-}
+step256 :: SHA256State -> Word32 -> Word32 -> SHA256State
+step256 (SHA256S a b c d e f g h) k w = SHA256S a' b' c' d' e' f' g' h' 
  where
-  step (SHA256S a b c d e f g h) k w = SHA256S a' b' c' d' e' f' g' h' 
-   where
-    t1 = h + bsig256_1 e + ch e f g + k + w
-    t2 = bsig256_0 a + maj a b c
-    h' = g
-    g' = f
-    f' = e
-    e' = d + t1
-    d' = c
-    c' = b
-    b' = a
-    a' = t1 + t2
+  t1 = h + bsig256_1 e + ch e f g + k + w
+  t2 = bsig256_0 a + maj a b c
+  h' = g
+  g' = f
+  f' = e
+  e' = d + t1
+  d' = c
+  c' = b
+  b' = a
+  a' = t1 + t2
 
 processSHA512Block :: SHA512State -> Get SHA512State
 processSHA512Block !s00@(SHA512S a00 b00 c00 d00 e00 f00 g00 h00) = do
@@ -789,102 +791,104 @@ processSHA512Block !s00@(SHA512S a00 b00 c00 d00 e00 f00 g00 h00) = do
                w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
                w60 w61 w62 w63 w64 w65 w66 w67 w68 w69
                w70 w71 w72 w73 w74 w75 w76 w77 w78 w79) <- getSHA512Sched
-  let !s01 = step s00 (sha512_k ! 00) w00
-      !s02 = step s01 (sha512_k ! 01) w01
-      !s03 = step s02 (sha512_k ! 02) w02
-      !s04 = step s03 (sha512_k ! 03) w03
-      !s05 = step s04 (sha512_k ! 04) w04
-      !s06 = step s05 (sha512_k ! 05) w05
-      !s07 = step s06 (sha512_k ! 06) w06
-      !s08 = step s07 (sha512_k ! 07) w07
-      !s09 = step s08 (sha512_k ! 08) w08
-      !s10 = step s09 (sha512_k ! 09) w09
-      !s11 = step s10 (sha512_k ! 10) w10
-      !s12 = step s11 (sha512_k ! 11) w11
-      !s13 = step s12 (sha512_k ! 12) w12
-      !s14 = step s13 (sha512_k ! 13) w13
-      !s15 = step s14 (sha512_k ! 14) w14
-      !s16 = step s15 (sha512_k ! 15) w15
-      !s17 = step s16 (sha512_k ! 16) w16
-      !s18 = step s17 (sha512_k ! 17) w17
-      !s19 = step s18 (sha512_k ! 18) w18
-      !s20 = step s19 (sha512_k ! 19) w19
-      !s21 = step s20 (sha512_k ! 20) w20
-      !s22 = step s21 (sha512_k ! 21) w21
-      !s23 = step s22 (sha512_k ! 22) w22
-      !s24 = step s23 (sha512_k ! 23) w23
-      !s25 = step s24 (sha512_k ! 24) w24
-      !s26 = step s25 (sha512_k ! 25) w25
-      !s27 = step s26 (sha512_k ! 26) w26
-      !s28 = step s27 (sha512_k ! 27) w27
-      !s29 = step s28 (sha512_k ! 28) w28
-      !s30 = step s29 (sha512_k ! 29) w29
-      !s31 = step s30 (sha512_k ! 30) w30
-      !s32 = step s31 (sha512_k ! 31) w31
-      !s33 = step s32 (sha512_k ! 32) w32
-      !s34 = step s33 (sha512_k ! 33) w33
-      !s35 = step s34 (sha512_k ! 34) w34
-      !s36 = step s35 (sha512_k ! 35) w35
-      !s37 = step s36 (sha512_k ! 36) w36
-      !s38 = step s37 (sha512_k ! 37) w37
-      !s39 = step s38 (sha512_k ! 38) w38
-      !s40 = step s39 (sha512_k ! 39) w39
-      !s41 = step s40 (sha512_k ! 40) w40
-      !s42 = step s41 (sha512_k ! 41) w41
-      !s43 = step s42 (sha512_k ! 42) w42
-      !s44 = step s43 (sha512_k ! 43) w43
-      !s45 = step s44 (sha512_k ! 44) w44
-      !s46 = step s45 (sha512_k ! 45) w45
-      !s47 = step s46 (sha512_k ! 46) w46
-      !s48 = step s47 (sha512_k ! 47) w47
-      !s49 = step s48 (sha512_k ! 48) w48
-      !s50 = step s49 (sha512_k ! 49) w49
-      !s51 = step s50 (sha512_k ! 50) w50
-      !s52 = step s51 (sha512_k ! 51) w51
-      !s53 = step s52 (sha512_k ! 52) w52
-      !s54 = step s53 (sha512_k ! 53) w53
-      !s55 = step s54 (sha512_k ! 54) w54
-      !s56 = step s55 (sha512_k ! 55) w55
-      !s57 = step s56 (sha512_k ! 56) w56
-      !s58 = step s57 (sha512_k ! 57) w57
-      !s59 = step s58 (sha512_k ! 58) w58
-      !s60 = step s59 (sha512_k ! 59) w59
-      !s61 = step s60 (sha512_k ! 60) w60
-      !s62 = step s61 (sha512_k ! 61) w61
-      !s63 = step s62 (sha512_k ! 62) w62
-      !s64 = step s63 (sha512_k ! 63) w63
-      !s65 = step s64 (sha512_k ! 64) w64
-      !s66 = step s65 (sha512_k ! 65) w65
-      !s67 = step s66 (sha512_k ! 66) w66
-      !s68 = step s67 (sha512_k ! 67) w67
-      !s69 = step s68 (sha512_k ! 68) w68
-      !s70 = step s69 (sha512_k ! 69) w69
-      !s71 = step s70 (sha512_k ! 70) w70
-      !s72 = step s71 (sha512_k ! 71) w71
-      !s73 = step s72 (sha512_k ! 72) w72
-      !s74 = step s73 (sha512_k ! 73) w73
-      !s75 = step s74 (sha512_k ! 74) w74
-      !s76 = step s75 (sha512_k ! 75) w75
-      !s77 = step s76 (sha512_k ! 76) w76
-      !s78 = step s77 (sha512_k ! 77) w77
-      !s79 = step s78 (sha512_k ! 78) w78
-      !s80 = step s79 (sha512_k ! 79) w79
+  let !s01 = step512 s00 (sha512_k ! 00) w00
+      !s02 = step512 s01 (sha512_k ! 01) w01
+      !s03 = step512 s02 (sha512_k ! 02) w02
+      !s04 = step512 s03 (sha512_k ! 03) w03
+      !s05 = step512 s04 (sha512_k ! 04) w04
+      !s06 = step512 s05 (sha512_k ! 05) w05
+      !s07 = step512 s06 (sha512_k ! 06) w06
+      !s08 = step512 s07 (sha512_k ! 07) w07
+      !s09 = step512 s08 (sha512_k ! 08) w08
+      !s10 = step512 s09 (sha512_k ! 09) w09
+      !s11 = step512 s10 (sha512_k ! 10) w10
+      !s12 = step512 s11 (sha512_k ! 11) w11
+      !s13 = step512 s12 (sha512_k ! 12) w12
+      !s14 = step512 s13 (sha512_k ! 13) w13
+      !s15 = step512 s14 (sha512_k ! 14) w14
+      !s16 = step512 s15 (sha512_k ! 15) w15
+      !s17 = step512 s16 (sha512_k ! 16) w16
+      !s18 = step512 s17 (sha512_k ! 17) w17
+      !s19 = step512 s18 (sha512_k ! 18) w18
+      !s20 = step512 s19 (sha512_k ! 19) w19
+      !s21 = step512 s20 (sha512_k ! 20) w20
+      !s22 = step512 s21 (sha512_k ! 21) w21
+      !s23 = step512 s22 (sha512_k ! 22) w22
+      !s24 = step512 s23 (sha512_k ! 23) w23
+      !s25 = step512 s24 (sha512_k ! 24) w24
+      !s26 = step512 s25 (sha512_k ! 25) w25
+      !s27 = step512 s26 (sha512_k ! 26) w26
+      !s28 = step512 s27 (sha512_k ! 27) w27
+      !s29 = step512 s28 (sha512_k ! 28) w28
+      !s30 = step512 s29 (sha512_k ! 29) w29
+      !s31 = step512 s30 (sha512_k ! 30) w30
+      !s32 = step512 s31 (sha512_k ! 31) w31
+      !s33 = step512 s32 (sha512_k ! 32) w32
+      !s34 = step512 s33 (sha512_k ! 33) w33
+      !s35 = step512 s34 (sha512_k ! 34) w34
+      !s36 = step512 s35 (sha512_k ! 35) w35
+      !s37 = step512 s36 (sha512_k ! 36) w36
+      !s38 = step512 s37 (sha512_k ! 37) w37
+      !s39 = step512 s38 (sha512_k ! 38) w38
+      !s40 = step512 s39 (sha512_k ! 39) w39
+      !s41 = step512 s40 (sha512_k ! 40) w40
+      !s42 = step512 s41 (sha512_k ! 41) w41
+      !s43 = step512 s42 (sha512_k ! 42) w42
+      !s44 = step512 s43 (sha512_k ! 43) w43
+      !s45 = step512 s44 (sha512_k ! 44) w44
+      !s46 = step512 s45 (sha512_k ! 45) w45
+      !s47 = step512 s46 (sha512_k ! 46) w46
+      !s48 = step512 s47 (sha512_k ! 47) w47
+      !s49 = step512 s48 (sha512_k ! 48) w48
+      !s50 = step512 s49 (sha512_k ! 49) w49
+      !s51 = step512 s50 (sha512_k ! 50) w50
+      !s52 = step512 s51 (sha512_k ! 51) w51
+      !s53 = step512 s52 (sha512_k ! 52) w52
+      !s54 = step512 s53 (sha512_k ! 53) w53
+      !s55 = step512 s54 (sha512_k ! 54) w54
+      !s56 = step512 s55 (sha512_k ! 55) w55
+      !s57 = step512 s56 (sha512_k ! 56) w56
+      !s58 = step512 s57 (sha512_k ! 57) w57
+      !s59 = step512 s58 (sha512_k ! 58) w58
+      !s60 = step512 s59 (sha512_k ! 59) w59
+      !s61 = step512 s60 (sha512_k ! 60) w60
+      !s62 = step512 s61 (sha512_k ! 61) w61
+      !s63 = step512 s62 (sha512_k ! 62) w62
+      !s64 = step512 s63 (sha512_k ! 63) w63
+      !s65 = step512 s64 (sha512_k ! 64) w64
+      !s66 = step512 s65 (sha512_k ! 65) w65
+      !s67 = step512 s66 (sha512_k ! 66) w66
+      !s68 = step512 s67 (sha512_k ! 67) w67
+      !s69 = step512 s68 (sha512_k ! 68) w68
+      !s70 = step512 s69 (sha512_k ! 69) w69
+      !s71 = step512 s70 (sha512_k ! 70) w70
+      !s72 = step512 s71 (sha512_k ! 71) w71
+      !s73 = step512 s72 (sha512_k ! 72) w72
+      !s74 = step512 s73 (sha512_k ! 73) w73
+      !s75 = step512 s74 (sha512_k ! 74) w74
+      !s76 = step512 s75 (sha512_k ! 75) w75
+      !s77 = step512 s76 (sha512_k ! 76) w76
+      !s78 = step512 s77 (sha512_k ! 77) w77
+      !s79 = step512 s78 (sha512_k ! 78) w78
+      !s80 = step512 s79 (sha512_k ! 79) w79
       SHA512S a80 b80 c80 d80 e80 f80 g80 h80 = s80
   return $ SHA512S (a00 + a80) (b00 + b80) (c00 + c80) (d00 + d80)
                    (e00 + e80) (f00 + f80) (g00 + g80) (h00 + h80)
+
+{-# INLINE step512 #-}
+step512 :: SHA512State -> Word64 -> Word64 -> SHA512State 
+step512 (SHA512S a b c d e f g h) k w = SHA512S a' b' c' d' e' f' g' h'
  where
-  step (SHA512S a b c d e f g h) k w = SHA512S a' b' c' d' e' f' g' h'
-   where
-    t1 = h + bsig512_1 e + ch e f g + k + w
-    t2 = bsig512_0 a + maj a b c
-    h' = g
-    g' = f
-    f' = e
-    e' = d + t1
-    d' = c
-    c' = b
-    b' = a
-    a' = t1 + t2
+  t1 = h + bsig512_1 e + ch e f g + k + w
+  t2 = bsig512_0 a + maj a b c
+  h' = g
+  g' = f
+  f' = e
+  e' = d + t1
+  d' = c
+  c' = b
+  b' = a
+  a' = t1 + t2
 
 -- --------------------------------------------------------------------------
 --
