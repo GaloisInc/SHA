@@ -906,6 +906,9 @@ runSHA s nextChunk input = runGet (getAll s) input
       else do s_out <- nextChunk s_in
               getAll s_out
 
+-- |Compute the SHA-1 hash of the given ByteString. The output is guaranteed
+-- to be exactly 160 bits, or 20 bytes, long. This is a good default for 
+-- programs that need a good, but not necessarily hyper-secure, hash function.
 sha1 :: ByteString -> Digest
 sha1 bs_in = Digest bs_out
  where
