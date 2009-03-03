@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns, CPP #-}
 -- |Pure implementations of the SHA suite of hash functions. The implementation
 -- is basically an unoptimized translation of FIPS 180-2 into Haskell. If you're
 -- looking for performance, you probably won't find it here.
@@ -19,14 +20,12 @@ module Data.Digest.Pure.SHA
        )
  where
 
-import Data.Array.Unboxed
 import Data.Binary.Get
 import Data.Binary.Put
 import Data.Bits
 import Data.ByteString.Lazy(ByteString)
 import qualified Data.ByteString.Lazy as BS
-import Data.Char
-import Data.Int
+import Data.Char (intToDigit)
 import Data.Word
 
 -- | An abstract datatype for digests.
@@ -34,62 +33,6 @@ newtype Digest = Digest ByteString deriving (Eq,Ord)
 
 instance Show Digest where
   show = showDigest
-
--- --------------------------------------------------------------------------
---
--- CONSTANT ARRAYS
---
--- --------------------------------------------------------------------------
-
--- The following arrays represent K_i.
-
-sha256_k :: UArray Int Word32
-sha256_k = listArray (0, 63) [
-    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b
-  , 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01
-  , 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7
-  , 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc
-  , 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152
-  , 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147
-  , 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc
-  , 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85 
-  , 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819
-  , 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08
-  , 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f
-  , 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208
-  , 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-  ]
-
-sha512_k :: UArray Int Word64
-sha512_k = listArray (0, 79) [
-    0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f
-  , 0xe9b5dba58189dbbc, 0x3956c25bf348b538, 0x59f111f1b605d019
-  , 0x923f82a4af194f9b, 0xab1c5ed5da6d8118, 0xd807aa98a3030242
-  , 0x12835b0145706fbe, 0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2
-  , 0x72be5d74f27b896f, 0x80deb1fe3b1696b1, 0x9bdc06a725c71235
-  , 0xc19bf174cf692694, 0xe49b69c19ef14ad2, 0xefbe4786384f25e3
-  , 0x0fc19dc68b8cd5b5, 0x240ca1cc77ac9c65, 0x2de92c6f592b0275
-  , 0x4a7484aa6ea6e483, 0x5cb0a9dcbd41fbd4, 0x76f988da831153b5
-  , 0x983e5152ee66dfab, 0xa831c66d2db43210, 0xb00327c898fb213f
-  , 0xbf597fc7beef0ee4, 0xc6e00bf33da88fc2, 0xd5a79147930aa725
-  , 0x06ca6351e003826f, 0x142929670a0e6e70, 0x27b70a8546d22ffc
-  , 0x2e1b21385c26c926, 0x4d2c6dfc5ac42aed, 0x53380d139d95b3df
-  , 0x650a73548baf63de, 0x766a0abb3c77b2a8, 0x81c2c92e47edaee6
-  , 0x92722c851482353b, 0xa2bfe8a14cf10364, 0xa81a664bbc423001
-  , 0xc24b8b70d0f89791, 0xc76c51a30654be30, 0xd192e819d6ef5218
-  , 0xd69906245565a910, 0xf40e35855771202a, 0x106aa07032bbd1b8
-  , 0x19a4c116b8d2d0c8, 0x1e376c085141ab53, 0x2748774cdf8eeb99
-  , 0x34b0bcb5e19b48a8, 0x391c0cb3c5c95a63, 0x4ed8aa4ae3418acb
-  , 0x5b9cca4f7763e373, 0x682e6ff3d6b2b8a3, 0x748f82ee5defb2fc
-  , 0x78a5636f43172f60, 0x84c87814a1f0ab72, 0x8cc702081a6439ec
-  , 0x90befffa23631e28, 0xa4506cebde82bde9, 0xbef9a3f7b2c67915
-  , 0xc67178f2e372532b, 0xca273eceea26619c, 0xd186b8c721c0c207
-  , 0xeada7dd6cde0eb1e, 0xf57d4f7fee6ed178, 0x06f067aa72176fba
-  , 0x0a637dc5a2c898a6, 0x113f9804bef90dae, 0x1b710b35131c471b
-  , 0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc
-  , 0x431d67c49c100d4c, 0x4cc5d4becb3e42b6, 0x597f299cfc657e2a
-  , 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
-  ]
 
 -- --------------------------------------------------------------------------
 --
@@ -215,12 +158,12 @@ find_k a b l = try_k 7
 
 toBigEndianBS :: (Integral a, Bits a) => Int -> a -> ByteString
 toBigEndianBS s val = BS.pack $ map getBits [s - 8, s - 16 .. 0]
- where 
+ where
    getBits x = fromIntegral $ (val `shiftR` x) .&. 0xFF
 
 #ifdef SHA_TEST
 fromBigEndianBS :: (Integral a, Bits a) => ByteString -> a
-fromBigEndianBS bs = 
+fromBigEndianBS bs =
   BS.foldl (\ acc x -> (acc `shiftL` 8) + (fromIntegral x)) 0 bs
 #endif
 
@@ -255,7 +198,7 @@ lsig256_0 :: Word32 -> Word32
 lsig256_0 x = (rotate x (-7)) `xor` (rotate x (-18)) `xor` (shiftR x 3)
 
 lsig256_1 :: Word32 -> Word32
-lsig256_1 x = (rotate x (-17)) `xor` (rotate x (-19)) `xor` (shiftR x 10) 
+lsig256_1 x = (rotate x (-17)) `xor` (rotate x (-19)) `xor` (shiftR x 10)
 
 bsig512_0 :: Word64 -> Word64
 bsig512_0 x = (rotate x (-28)) `xor` (rotate x (-34)) `xor` (rotate x (-39))
@@ -570,14 +513,14 @@ getSHA512Sched = do
       w77 = (lsig512_1 w75) + w70 + (lsig512_0 w62) + w61
       w78 = (lsig512_1 w76) + w71 + (lsig512_0 w63) + w62
       w79 = (lsig512_1 w77) + w72 + (lsig512_0 w64) + w63
-  return $ SHA512Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09 
-                       w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 
-                       w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 
-                       w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 
-                       w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 
-                       w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 
-                       w60 w61 w62 w63 w64 w65 w66 w67 w68 w69 
-                       w70 w71 w72 w73 w74 w75 w76 w77 w78 w79 
+  return $ SHA512Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09
+                       w10 w11 w12 w13 w14 w15 w16 w17 w18 w19
+                       w20 w21 w22 w23 w24 w25 w26 w27 w28 w29
+                       w30 w31 w32 w33 w34 w35 w36 w37 w38 w39
+                       w40 w41 w42 w43 w44 w45 w46 w47 w48 w49
+                       w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
+                       w60 w61 w62 w63 w64 w65 w66 w67 w68 w69
+                       w70 w71 w72 w73 w74 w75 w76 w77 w78 w79
 
 -- --------------------------------------------------------------------------
 --
@@ -595,100 +538,100 @@ processSHA1Block s00@(SHA1S a00 b00 c00 d00 e00) = do
              w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
              w60 w61 w62 w63 w64 w65 w66 w67 w68 w69
              w70 w71 w72 w73 w74 w75 w76 w77 w78 w79) <- getSHA1Sched
-  let !s01 = step1 s00 0x5a827999     ch w00
-      !s02 = step1 s01 0x5a827999     ch w01
-      !s03 = step1 s02 0x5a827999     ch w02
-      !s04 = step1 s03 0x5a827999     ch w03
-      !s05 = step1 s04 0x5a827999     ch w04
-      !s06 = step1 s05 0x5a827999     ch w05
-      !s07 = step1 s06 0x5a827999     ch w06
-      !s08 = step1 s07 0x5a827999     ch w07
-      !s09 = step1 s08 0x5a827999     ch w08
-      !s10 = step1 s09 0x5a827999     ch w09
-      !s11 = step1 s10 0x5a827999     ch w10
-      !s12 = step1 s11 0x5a827999     ch w11
-      !s13 = step1 s12 0x5a827999     ch w12
-      !s14 = step1 s13 0x5a827999     ch w13
-      !s15 = step1 s14 0x5a827999     ch w14
-      !s16 = step1 s15 0x5a827999     ch w15
-      !s17 = step1 s16 0x5a827999     ch w16
-      !s18 = step1 s17 0x5a827999     ch w17
-      !s19 = step1 s18 0x5a827999     ch w18
-      !s20 = step1 s19 0x5a827999     ch w19
-      !s21 = step1 s20 0x6ed9eba1 parity w20
-      !s22 = step1 s21 0x6ed9eba1 parity w21
-      !s23 = step1 s22 0x6ed9eba1 parity w22
-      !s24 = step1 s23 0x6ed9eba1 parity w23
-      !s25 = step1 s24 0x6ed9eba1 parity w24
-      !s26 = step1 s25 0x6ed9eba1 parity w25
-      !s27 = step1 s26 0x6ed9eba1 parity w26
-      !s28 = step1 s27 0x6ed9eba1 parity w27
-      !s29 = step1 s28 0x6ed9eba1 parity w28
-      !s30 = step1 s29 0x6ed9eba1 parity w29
-      !s31 = step1 s30 0x6ed9eba1 parity w30
-      !s32 = step1 s31 0x6ed9eba1 parity w31
-      !s33 = step1 s32 0x6ed9eba1 parity w32
-      !s34 = step1 s33 0x6ed9eba1 parity w33
-      !s35 = step1 s34 0x6ed9eba1 parity w34
-      !s36 = step1 s35 0x6ed9eba1 parity w35
-      !s37 = step1 s36 0x6ed9eba1 parity w36
-      !s38 = step1 s37 0x6ed9eba1 parity w37
-      !s39 = step1 s38 0x6ed9eba1 parity w38
-      !s40 = step1 s39 0x6ed9eba1 parity w39
-      !s41 = step1 s40 0x8f1bbcdc    maj w40
-      !s42 = step1 s41 0x8f1bbcdc    maj w41
-      !s43 = step1 s42 0x8f1bbcdc    maj w42
-      !s44 = step1 s43 0x8f1bbcdc    maj w43
-      !s45 = step1 s44 0x8f1bbcdc    maj w44
-      !s46 = step1 s45 0x8f1bbcdc    maj w45
-      !s47 = step1 s46 0x8f1bbcdc    maj w46
-      !s48 = step1 s47 0x8f1bbcdc    maj w47
-      !s49 = step1 s48 0x8f1bbcdc    maj w48
-      !s50 = step1 s49 0x8f1bbcdc    maj w49
-      !s51 = step1 s50 0x8f1bbcdc    maj w50
-      !s52 = step1 s51 0x8f1bbcdc    maj w51
-      !s53 = step1 s52 0x8f1bbcdc    maj w52
-      !s54 = step1 s53 0x8f1bbcdc    maj w53
-      !s55 = step1 s54 0x8f1bbcdc    maj w54
-      !s56 = step1 s55 0x8f1bbcdc    maj w55
-      !s57 = step1 s56 0x8f1bbcdc    maj w56
-      !s58 = step1 s57 0x8f1bbcdc    maj w57
-      !s59 = step1 s58 0x8f1bbcdc    maj w58
-      !s60 = step1 s59 0x8f1bbcdc    maj w59
-      !s61 = step1 s60 0xca62c1d6 parity w60
-      !s62 = step1 s61 0xca62c1d6 parity w61
-      !s63 = step1 s62 0xca62c1d6 parity w62
-      !s64 = step1 s63 0xca62c1d6 parity w63
-      !s65 = step1 s64 0xca62c1d6 parity w64
-      !s66 = step1 s65 0xca62c1d6 parity w65
-      !s67 = step1 s66 0xca62c1d6 parity w66
-      !s68 = step1 s67 0xca62c1d6 parity w67
-      !s69 = step1 s68 0xca62c1d6 parity w68
-      !s70 = step1 s69 0xca62c1d6 parity w69
-      !s71 = step1 s70 0xca62c1d6 parity w70
-      !s72 = step1 s71 0xca62c1d6 parity w71
-      !s73 = step1 s72 0xca62c1d6 parity w72
-      !s74 = step1 s73 0xca62c1d6 parity w73
-      !s75 = step1 s74 0xca62c1d6 parity w74
-      !s76 = step1 s75 0xca62c1d6 parity w75
-      !s77 = step1 s76 0xca62c1d6 parity w76
-      !s78 = step1 s77 0xca62c1d6 parity w77
-      !s79 = step1 s78 0xca62c1d6 parity w78
-      !s80 = step1 s79 0xca62c1d6 parity w79
+  let s01 = step1 s00 0x5a827999     ch w00
+      s02 = step1 s01 0x5a827999     ch w01
+      s03 = step1 s02 0x5a827999     ch w02
+      s04 = step1 s03 0x5a827999     ch w03
+      s05 = step1 s04 0x5a827999     ch w04
+      s06 = step1 s05 0x5a827999     ch w05
+      s07 = step1 s06 0x5a827999     ch w06
+      s08 = step1 s07 0x5a827999     ch w07
+      s09 = step1 s08 0x5a827999     ch w08
+      s10 = step1 s09 0x5a827999     ch w09
+      s11 = step1 s10 0x5a827999     ch w10
+      s12 = step1 s11 0x5a827999     ch w11
+      s13 = step1 s12 0x5a827999     ch w12
+      s14 = step1 s13 0x5a827999     ch w13
+      s15 = step1 s14 0x5a827999     ch w14
+      s16 = step1 s15 0x5a827999     ch w15
+      s17 = step1 s16 0x5a827999     ch w16
+      s18 = step1 s17 0x5a827999     ch w17
+      s19 = step1 s18 0x5a827999     ch w18
+      s20 = step1 s19 0x5a827999     ch w19
+      s21 = step1 s20 0x6ed9eba1 parity w20
+      s22 = step1 s21 0x6ed9eba1 parity w21
+      s23 = step1 s22 0x6ed9eba1 parity w22
+      s24 = step1 s23 0x6ed9eba1 parity w23
+      s25 = step1 s24 0x6ed9eba1 parity w24
+      s26 = step1 s25 0x6ed9eba1 parity w25
+      s27 = step1 s26 0x6ed9eba1 parity w26
+      s28 = step1 s27 0x6ed9eba1 parity w27
+      s29 = step1 s28 0x6ed9eba1 parity w28
+      s30 = step1 s29 0x6ed9eba1 parity w29
+      s31 = step1 s30 0x6ed9eba1 parity w30
+      s32 = step1 s31 0x6ed9eba1 parity w31
+      s33 = step1 s32 0x6ed9eba1 parity w32
+      s34 = step1 s33 0x6ed9eba1 parity w33
+      s35 = step1 s34 0x6ed9eba1 parity w34
+      s36 = step1 s35 0x6ed9eba1 parity w35
+      s37 = step1 s36 0x6ed9eba1 parity w36
+      s38 = step1 s37 0x6ed9eba1 parity w37
+      s39 = step1 s38 0x6ed9eba1 parity w38
+      s40 = step1 s39 0x6ed9eba1 parity w39
+      s41 = step1 s40 0x8f1bbcdc    maj w40
+      s42 = step1 s41 0x8f1bbcdc    maj w41
+      s43 = step1 s42 0x8f1bbcdc    maj w42
+      s44 = step1 s43 0x8f1bbcdc    maj w43
+      s45 = step1 s44 0x8f1bbcdc    maj w44
+      s46 = step1 s45 0x8f1bbcdc    maj w45
+      s47 = step1 s46 0x8f1bbcdc    maj w46
+      s48 = step1 s47 0x8f1bbcdc    maj w47
+      s49 = step1 s48 0x8f1bbcdc    maj w48
+      s50 = step1 s49 0x8f1bbcdc    maj w49
+      s51 = step1 s50 0x8f1bbcdc    maj w50
+      s52 = step1 s51 0x8f1bbcdc    maj w51
+      s53 = step1 s52 0x8f1bbcdc    maj w52
+      s54 = step1 s53 0x8f1bbcdc    maj w53
+      s55 = step1 s54 0x8f1bbcdc    maj w54
+      s56 = step1 s55 0x8f1bbcdc    maj w55
+      s57 = step1 s56 0x8f1bbcdc    maj w56
+      s58 = step1 s57 0x8f1bbcdc    maj w57
+      s59 = step1 s58 0x8f1bbcdc    maj w58
+      s60 = step1 s59 0x8f1bbcdc    maj w59
+      s61 = step1 s60 0xca62c1d6 parity w60
+      s62 = step1 s61 0xca62c1d6 parity w61
+      s63 = step1 s62 0xca62c1d6 parity w62
+      s64 = step1 s63 0xca62c1d6 parity w63
+      s65 = step1 s64 0xca62c1d6 parity w64
+      s66 = step1 s65 0xca62c1d6 parity w65
+      s67 = step1 s66 0xca62c1d6 parity w66
+      s68 = step1 s67 0xca62c1d6 parity w67
+      s69 = step1 s68 0xca62c1d6 parity w68
+      s70 = step1 s69 0xca62c1d6 parity w69
+      s71 = step1 s70 0xca62c1d6 parity w70
+      s72 = step1 s71 0xca62c1d6 parity w71
+      s73 = step1 s72 0xca62c1d6 parity w72
+      s74 = step1 s73 0xca62c1d6 parity w73
+      s75 = step1 s74 0xca62c1d6 parity w74
+      s76 = step1 s75 0xca62c1d6 parity w75
+      s77 = step1 s76 0xca62c1d6 parity w76
+      s78 = step1 s77 0xca62c1d6 parity w77
+      s79 = step1 s78 0xca62c1d6 parity w78
+      s80 = step1 s79 0xca62c1d6 parity w79
       SHA1S a80 b80 c80 d80 e80 = s80
   return $ SHA1S (a00 + a80) (b00 + b80) (c00 + c80) (d00 + d80) (e00 + e80)
 
 {-# INLINE step1 #-}
-step1 :: SHA1State -> Word32 -> 
-         (Word32 -> Word32 -> Word32 -> Word32) -> Word32 -> 
+step1 :: SHA1State -> Word32 ->
+         (Word32 -> Word32 -> Word32 -> Word32) -> Word32 ->
          SHA1State
-step1 (SHA1S a b c d e) !k !f !w = SHA1S a' b' c' d' e'
+step1 !(SHA1S a b c d e) k !f w = SHA1S a' b' c' d' e'
  where a' = (rotate a 5) + (f b c d) + e + k + w
        b' = a
        c' = rotate b 30
        d' = c
        e' = d
-   
+
 processSHA256Block :: SHA256State -> Get SHA256State
 processSHA256Block !s00@(SHA256S a00 b00 c00 d00 e00 f00 g00 h00) = do
   (SHA256Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09
@@ -698,77 +641,77 @@ processSHA256Block !s00@(SHA256S a00 b00 c00 d00 e00 f00 g00 h00) = do
                w40 w41 w42 w43 w44 w45 w46 w47 w48 w49
                w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
                w60 w61 w62 w63) <- getSHA256Sched
-  let !s01 = step256 s00 (sha256_k ! 00) w00
-      !s02 = step256 s01 (sha256_k ! 01) w01
-      !s03 = step256 s02 (sha256_k ! 02) w02
-      !s04 = step256 s03 (sha256_k ! 03) w03
-      !s05 = step256 s04 (sha256_k ! 04) w04
-      !s06 = step256 s05 (sha256_k ! 05) w05
-      !s07 = step256 s06 (sha256_k ! 06) w06
-      !s08 = step256 s07 (sha256_k ! 07) w07
-      !s09 = step256 s08 (sha256_k ! 08) w08
-      !s10 = step256 s09 (sha256_k ! 09) w09
-      !s11 = step256 s10 (sha256_k ! 10) w10
-      !s12 = step256 s11 (sha256_k ! 11) w11
-      !s13 = step256 s12 (sha256_k ! 12) w12
-      !s14 = step256 s13 (sha256_k ! 13) w13
-      !s15 = step256 s14 (sha256_k ! 14) w14
-      !s16 = step256 s15 (sha256_k ! 15) w15
-      !s17 = step256 s16 (sha256_k ! 16) w16
-      !s18 = step256 s17 (sha256_k ! 17) w17
-      !s19 = step256 s18 (sha256_k ! 18) w18
-      !s20 = step256 s19 (sha256_k ! 19) w19
-      !s21 = step256 s20 (sha256_k ! 20) w20
-      !s22 = step256 s21 (sha256_k ! 21) w21
-      !s23 = step256 s22 (sha256_k ! 22) w22
-      !s24 = step256 s23 (sha256_k ! 23) w23
-      !s25 = step256 s24 (sha256_k ! 24) w24
-      !s26 = step256 s25 (sha256_k ! 25) w25
-      !s27 = step256 s26 (sha256_k ! 26) w26
-      !s28 = step256 s27 (sha256_k ! 27) w27
-      !s29 = step256 s28 (sha256_k ! 28) w28
-      !s30 = step256 s29 (sha256_k ! 29) w29
-      !s31 = step256 s30 (sha256_k ! 30) w30
-      !s32 = step256 s31 (sha256_k ! 31) w31
-      !s33 = step256 s32 (sha256_k ! 32) w32
-      !s34 = step256 s33 (sha256_k ! 33) w33
-      !s35 = step256 s34 (sha256_k ! 34) w34
-      !s36 = step256 s35 (sha256_k ! 35) w35
-      !s37 = step256 s36 (sha256_k ! 36) w36
-      !s38 = step256 s37 (sha256_k ! 37) w37
-      !s39 = step256 s38 (sha256_k ! 38) w38
-      !s40 = step256 s39 (sha256_k ! 39) w39
-      !s41 = step256 s40 (sha256_k ! 40) w40
-      !s42 = step256 s41 (sha256_k ! 41) w41
-      !s43 = step256 s42 (sha256_k ! 42) w42
-      !s44 = step256 s43 (sha256_k ! 43) w43
-      !s45 = step256 s44 (sha256_k ! 44) w44
-      !s46 = step256 s45 (sha256_k ! 45) w45
-      !s47 = step256 s46 (sha256_k ! 46) w46
-      !s48 = step256 s47 (sha256_k ! 47) w47
-      !s49 = step256 s48 (sha256_k ! 48) w48
-      !s50 = step256 s49 (sha256_k ! 49) w49
-      !s51 = step256 s50 (sha256_k ! 50) w50
-      !s52 = step256 s51 (sha256_k ! 51) w51
-      !s53 = step256 s52 (sha256_k ! 52) w52
-      !s54 = step256 s53 (sha256_k ! 53) w53
-      !s55 = step256 s54 (sha256_k ! 54) w54
-      !s56 = step256 s55 (sha256_k ! 55) w55
-      !s57 = step256 s56 (sha256_k ! 56) w56
-      !s58 = step256 s57 (sha256_k ! 57) w57
-      !s59 = step256 s58 (sha256_k ! 58) w58
-      !s60 = step256 s59 (sha256_k ! 59) w59
-      !s61 = step256 s60 (sha256_k ! 60) w60
-      !s62 = step256 s61 (sha256_k ! 61) w61
-      !s63 = step256 s62 (sha256_k ! 62) w62
-      !s64 = step256 s63 (sha256_k ! 63) w63
+  let s01 = step256 s00 0x428a2f98 w00
+      s02 = step256 s01 0x71374491 w01
+      s03 = step256 s02 0xb5c0fbcf w02
+      s04 = step256 s03 0xe9b5dba5 w03
+      s05 = step256 s04 0x3956c25b w04
+      s06 = step256 s05 0x59f111f1 w05
+      s07 = step256 s06 0x923f82a4 w06
+      s08 = step256 s07 0xab1c5ed5 w07
+      s09 = step256 s08 0xd807aa98 w08
+      s10 = step256 s09 0x12835b01 w09
+      s11 = step256 s10 0x243185be w10
+      s12 = step256 s11 0x550c7dc3 w11
+      s13 = step256 s12 0x72be5d74 w12
+      s14 = step256 s13 0x80deb1fe w13
+      s15 = step256 s14 0x9bdc06a7 w14
+      s16 = step256 s15 0xc19bf174 w15
+      s17 = step256 s16 0xe49b69c1 w16
+      s18 = step256 s17 0xefbe4786 w17
+      s19 = step256 s18 0x0fc19dc6 w18
+      s20 = step256 s19 0x240ca1cc w19
+      s21 = step256 s20 0x2de92c6f w20
+      s22 = step256 s21 0x4a7484aa w21
+      s23 = step256 s22 0x5cb0a9dc w22
+      s24 = step256 s23 0x76f988da w23
+      s25 = step256 s24 0x983e5152 w24
+      s26 = step256 s25 0xa831c66d w25
+      s27 = step256 s26 0xb00327c8 w26
+      s28 = step256 s27 0xbf597fc7 w27
+      s29 = step256 s28 0xc6e00bf3 w28
+      s30 = step256 s29 0xd5a79147 w29
+      s31 = step256 s30 0x06ca6351 w30
+      s32 = step256 s31 0x14292967 w31
+      s33 = step256 s32 0x27b70a85 w32
+      s34 = step256 s33 0x2e1b2138 w33
+      s35 = step256 s34 0x4d2c6dfc w34
+      s36 = step256 s35 0x53380d13 w35
+      s37 = step256 s36 0x650a7354 w36
+      s38 = step256 s37 0x766a0abb w37
+      s39 = step256 s38 0x81c2c92e w38
+      s40 = step256 s39 0x92722c85 w39
+      s41 = step256 s40 0xa2bfe8a1 w40
+      s42 = step256 s41 0xa81a664b w41
+      s43 = step256 s42 0xc24b8b70 w42
+      s44 = step256 s43 0xc76c51a3 w43
+      s45 = step256 s44 0xd192e819 w44
+      s46 = step256 s45 0xd6990624 w45
+      s47 = step256 s46 0xf40e3585 w46
+      s48 = step256 s47 0x106aa070 w47
+      s49 = step256 s48 0x19a4c116 w48
+      s50 = step256 s49 0x1e376c08 w49
+      s51 = step256 s50 0x2748774c w50
+      s52 = step256 s51 0x34b0bcb5 w51
+      s53 = step256 s52 0x391c0cb3 w52
+      s54 = step256 s53 0x4ed8aa4a w53
+      s55 = step256 s54 0x5b9cca4f w54
+      s56 = step256 s55 0x682e6ff3 w55
+      s57 = step256 s56 0x748f82ee w56
+      s58 = step256 s57 0x78a5636f w57
+      s59 = step256 s58 0x84c87814 w58
+      s60 = step256 s59 0x8cc70208 w59
+      s61 = step256 s60 0x90befffa w60
+      s62 = step256 s61 0xa4506ceb w61
+      s63 = step256 s62 0xbef9a3f7 w62
+      s64 = step256 s63 0xc67178f2 w63
       SHA256S a64 b64 c64 d64 e64 f64 g64 h64 = s64
   return $ SHA256S (a00 + a64) (b00 + b64) (c00 + c64) (d00 + d64)
                    (e00 + e64) (f00 + f64) (g00 + g64) (h00 + h64)
 
 {-# INLINE step256 #-}
 step256 :: SHA256State -> Word32 -> Word32 -> SHA256State
-step256 (SHA256S a b c d e f g h) k w = SHA256S a' b' c' d' e' f' g' h' 
+step256 !(SHA256S a b c d e f g h) k w = SHA256S a' b' c' d' e' f' g' h'
  where
   t1 = h + bsig256_1 e + ch e f g + k + w
   t2 = bsig256_0 a + maj a b c
@@ -791,93 +734,93 @@ processSHA512Block !s00@(SHA512S a00 b00 c00 d00 e00 f00 g00 h00) = do
                w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
                w60 w61 w62 w63 w64 w65 w66 w67 w68 w69
                w70 w71 w72 w73 w74 w75 w76 w77 w78 w79) <- getSHA512Sched
-  let !s01 = step512 s00 (sha512_k ! 00) w00
-      !s02 = step512 s01 (sha512_k ! 01) w01
-      !s03 = step512 s02 (sha512_k ! 02) w02
-      !s04 = step512 s03 (sha512_k ! 03) w03
-      !s05 = step512 s04 (sha512_k ! 04) w04
-      !s06 = step512 s05 (sha512_k ! 05) w05
-      !s07 = step512 s06 (sha512_k ! 06) w06
-      !s08 = step512 s07 (sha512_k ! 07) w07
-      !s09 = step512 s08 (sha512_k ! 08) w08
-      !s10 = step512 s09 (sha512_k ! 09) w09
-      !s11 = step512 s10 (sha512_k ! 10) w10
-      !s12 = step512 s11 (sha512_k ! 11) w11
-      !s13 = step512 s12 (sha512_k ! 12) w12
-      !s14 = step512 s13 (sha512_k ! 13) w13
-      !s15 = step512 s14 (sha512_k ! 14) w14
-      !s16 = step512 s15 (sha512_k ! 15) w15
-      !s17 = step512 s16 (sha512_k ! 16) w16
-      !s18 = step512 s17 (sha512_k ! 17) w17
-      !s19 = step512 s18 (sha512_k ! 18) w18
-      !s20 = step512 s19 (sha512_k ! 19) w19
-      !s21 = step512 s20 (sha512_k ! 20) w20
-      !s22 = step512 s21 (sha512_k ! 21) w21
-      !s23 = step512 s22 (sha512_k ! 22) w22
-      !s24 = step512 s23 (sha512_k ! 23) w23
-      !s25 = step512 s24 (sha512_k ! 24) w24
-      !s26 = step512 s25 (sha512_k ! 25) w25
-      !s27 = step512 s26 (sha512_k ! 26) w26
-      !s28 = step512 s27 (sha512_k ! 27) w27
-      !s29 = step512 s28 (sha512_k ! 28) w28
-      !s30 = step512 s29 (sha512_k ! 29) w29
-      !s31 = step512 s30 (sha512_k ! 30) w30
-      !s32 = step512 s31 (sha512_k ! 31) w31
-      !s33 = step512 s32 (sha512_k ! 32) w32
-      !s34 = step512 s33 (sha512_k ! 33) w33
-      !s35 = step512 s34 (sha512_k ! 34) w34
-      !s36 = step512 s35 (sha512_k ! 35) w35
-      !s37 = step512 s36 (sha512_k ! 36) w36
-      !s38 = step512 s37 (sha512_k ! 37) w37
-      !s39 = step512 s38 (sha512_k ! 38) w38
-      !s40 = step512 s39 (sha512_k ! 39) w39
-      !s41 = step512 s40 (sha512_k ! 40) w40
-      !s42 = step512 s41 (sha512_k ! 41) w41
-      !s43 = step512 s42 (sha512_k ! 42) w42
-      !s44 = step512 s43 (sha512_k ! 43) w43
-      !s45 = step512 s44 (sha512_k ! 44) w44
-      !s46 = step512 s45 (sha512_k ! 45) w45
-      !s47 = step512 s46 (sha512_k ! 46) w46
-      !s48 = step512 s47 (sha512_k ! 47) w47
-      !s49 = step512 s48 (sha512_k ! 48) w48
-      !s50 = step512 s49 (sha512_k ! 49) w49
-      !s51 = step512 s50 (sha512_k ! 50) w50
-      !s52 = step512 s51 (sha512_k ! 51) w51
-      !s53 = step512 s52 (sha512_k ! 52) w52
-      !s54 = step512 s53 (sha512_k ! 53) w53
-      !s55 = step512 s54 (sha512_k ! 54) w54
-      !s56 = step512 s55 (sha512_k ! 55) w55
-      !s57 = step512 s56 (sha512_k ! 56) w56
-      !s58 = step512 s57 (sha512_k ! 57) w57
-      !s59 = step512 s58 (sha512_k ! 58) w58
-      !s60 = step512 s59 (sha512_k ! 59) w59
-      !s61 = step512 s60 (sha512_k ! 60) w60
-      !s62 = step512 s61 (sha512_k ! 61) w61
-      !s63 = step512 s62 (sha512_k ! 62) w62
-      !s64 = step512 s63 (sha512_k ! 63) w63
-      !s65 = step512 s64 (sha512_k ! 64) w64
-      !s66 = step512 s65 (sha512_k ! 65) w65
-      !s67 = step512 s66 (sha512_k ! 66) w66
-      !s68 = step512 s67 (sha512_k ! 67) w67
-      !s69 = step512 s68 (sha512_k ! 68) w68
-      !s70 = step512 s69 (sha512_k ! 69) w69
-      !s71 = step512 s70 (sha512_k ! 70) w70
-      !s72 = step512 s71 (sha512_k ! 71) w71
-      !s73 = step512 s72 (sha512_k ! 72) w72
-      !s74 = step512 s73 (sha512_k ! 73) w73
-      !s75 = step512 s74 (sha512_k ! 74) w74
-      !s76 = step512 s75 (sha512_k ! 75) w75
-      !s77 = step512 s76 (sha512_k ! 76) w76
-      !s78 = step512 s77 (sha512_k ! 77) w77
-      !s79 = step512 s78 (sha512_k ! 78) w78
-      !s80 = step512 s79 (sha512_k ! 79) w79
+  let s01 = step512 s00 0x428a2f98d728ae22 w00
+      s02 = step512 s01 0x7137449123ef65cd w01
+      s03 = step512 s02 0xb5c0fbcfec4d3b2f w02
+      s04 = step512 s03 0xe9b5dba58189dbbc w03
+      s05 = step512 s04 0x3956c25bf348b538 w04
+      s06 = step512 s05 0x59f111f1b605d019 w05
+      s07 = step512 s06 0x923f82a4af194f9b w06
+      s08 = step512 s07 0xab1c5ed5da6d8118 w07
+      s09 = step512 s08 0xd807aa98a3030242 w08
+      s10 = step512 s09 0x12835b0145706fbe w09
+      s11 = step512 s10 0x243185be4ee4b28c w10
+      s12 = step512 s11 0x550c7dc3d5ffb4e2 w11
+      s13 = step512 s12 0x72be5d74f27b896f w12
+      s14 = step512 s13 0x80deb1fe3b1696b1 w13
+      s15 = step512 s14 0x9bdc06a725c71235 w14
+      s16 = step512 s15 0xc19bf174cf692694 w15
+      s17 = step512 s16 0xe49b69c19ef14ad2 w16
+      s18 = step512 s17 0xefbe4786384f25e3 w17
+      s19 = step512 s18 0x0fc19dc68b8cd5b5 w18
+      s20 = step512 s19 0x240ca1cc77ac9c65 w19
+      s21 = step512 s20 0x2de92c6f592b0275 w20
+      s22 = step512 s21 0x4a7484aa6ea6e483 w21
+      s23 = step512 s22 0x5cb0a9dcbd41fbd4 w22
+      s24 = step512 s23 0x76f988da831153b5 w23
+      s25 = step512 s24 0x983e5152ee66dfab w24
+      s26 = step512 s25 0xa831c66d2db43210 w25
+      s27 = step512 s26 0xb00327c898fb213f w26
+      s28 = step512 s27 0xbf597fc7beef0ee4 w27
+      s29 = step512 s28 0xc6e00bf33da88fc2 w28
+      s30 = step512 s29 0xd5a79147930aa725 w29
+      s31 = step512 s30 0x06ca6351e003826f w30
+      s32 = step512 s31 0x142929670a0e6e70 w31
+      s33 = step512 s32 0x27b70a8546d22ffc w32
+      s34 = step512 s33 0x2e1b21385c26c926 w33
+      s35 = step512 s34 0x4d2c6dfc5ac42aed w34
+      s36 = step512 s35 0x53380d139d95b3df w35
+      s37 = step512 s36 0x650a73548baf63de w36
+      s38 = step512 s37 0x766a0abb3c77b2a8 w37
+      s39 = step512 s38 0x81c2c92e47edaee6 w38
+      s40 = step512 s39 0x92722c851482353b w39
+      s41 = step512 s40 0xa2bfe8a14cf10364 w40
+      s42 = step512 s41 0xa81a664bbc423001 w41
+      s43 = step512 s42 0xc24b8b70d0f89791 w42
+      s44 = step512 s43 0xc76c51a30654be30 w43
+      s45 = step512 s44 0xd192e819d6ef5218 w44
+      s46 = step512 s45 0xd69906245565a910 w45
+      s47 = step512 s46 0xf40e35855771202a w46
+      s48 = step512 s47 0x106aa07032bbd1b8 w47
+      s49 = step512 s48 0x19a4c116b8d2d0c8 w48
+      s50 = step512 s49 0x1e376c085141ab53 w49
+      s51 = step512 s50 0x2748774cdf8eeb99 w50
+      s52 = step512 s51 0x34b0bcb5e19b48a8 w51
+      s53 = step512 s52 0x391c0cb3c5c95a63 w52
+      s54 = step512 s53 0x4ed8aa4ae3418acb w53
+      s55 = step512 s54 0x5b9cca4f7763e373 w54
+      s56 = step512 s55 0x682e6ff3d6b2b8a3 w55
+      s57 = step512 s56 0x748f82ee5defb2fc w56
+      s58 = step512 s57 0x78a5636f43172f60 w57
+      s59 = step512 s58 0x84c87814a1f0ab72 w58
+      s60 = step512 s59 0x8cc702081a6439ec w59
+      s61 = step512 s60 0x90befffa23631e28 w60
+      s62 = step512 s61 0xa4506cebde82bde9 w61
+      s63 = step512 s62 0xbef9a3f7b2c67915 w62
+      s64 = step512 s63 0xc67178f2e372532b w63
+      s65 = step512 s64 0xca273eceea26619c w64
+      s66 = step512 s65 0xd186b8c721c0c207 w65
+      s67 = step512 s66 0xeada7dd6cde0eb1e w66
+      s68 = step512 s67 0xf57d4f7fee6ed178 w67
+      s69 = step512 s68 0x06f067aa72176fba w68
+      s70 = step512 s69 0x0a637dc5a2c898a6 w69
+      s71 = step512 s70 0x113f9804bef90dae w70
+      s72 = step512 s71 0x1b710b35131c471b w71
+      s73 = step512 s72 0x28db77f523047d84 w72
+      s74 = step512 s73 0x32caab7b40c72493 w73
+      s75 = step512 s74 0x3c9ebe0a15c9bebc w74
+      s76 = step512 s75 0x431d67c49c100d4c w75
+      s77 = step512 s76 0x4cc5d4becb3e42b6 w76
+      s78 = step512 s77 0x597f299cfc657e2a w77
+      s79 = step512 s78 0x5fcb6fab3ad6faec w78
+      s80 = step512 s79 0x6c44198c4a475817 w79
       SHA512S a80 b80 c80 d80 e80 f80 g80 h80 = s80
   return $ SHA512S (a00 + a80) (b00 + b80) (c00 + c80) (d00 + d80)
                    (e00 + e80) (f00 + f80) (g00 + g80) (h00 + h80)
 
 {-# INLINE step512 #-}
-step512 :: SHA512State -> Word64 -> Word64 -> SHA512State 
-step512 (SHA512S a b c d e f g h) k w = SHA512S a' b' c' d' e' f' g' h'
+step512 :: SHA512State -> Word64 -> Word64 -> SHA512State
+step512 !(SHA512S a b c d e f g h) k w = SHA512S a' b' c' d' e' f' g' h'
  where
   t1 = h + bsig512_1 e + ch e f g + k + w
   t2 = bsig512_0 a + maj a b c
@@ -898,7 +841,7 @@ step512 (SHA512S a b c d e f g h) k w = SHA512S a' b' c' d' e' f' g' h'
 
 runSHA :: a -> (a -> Get a) -> ByteString -> a
 runSHA s nextChunk input = runGet (getAll s) input
- where 
+ where
   getAll s_in = do
     done <- isEmpty
     if done
@@ -907,7 +850,7 @@ runSHA s nextChunk input = runGet (getAll s) input
               getAll s_out
 
 -- |Compute the SHA-1 hash of the given ByteString. The output is guaranteed
--- to be exactly 160 bits, or 20 bytes, long. This is a good default for 
+-- to be exactly 160 bits, or 20 bytes, long. This is a good default for
 -- programs that need a good, but not necessarily hyper-secure, hash function.
 sha1 :: ByteString -> Digest
 sha1 bs_in = Digest bs_out
@@ -928,7 +871,7 @@ sha224 bs_in = Digest bs_out
   bs_out = runPut $ synthesizeSHA224 fstate
 
 -- |Compute the SHA-256 hash of the given ByteString. The output is guaranteed
--- to be exactly 256 bits, or 32 bytes, long. If your security requirements 
+-- to be exactly 256 bits, or 32 bytes, long. If your security requirements
 -- are pretty serious, this is a good choice. For truly significant security
 -- concerns, however, you might try one of the bigger options.
 sha256 :: ByteString -> Digest
@@ -938,7 +881,7 @@ sha256 bs_in = Digest bs_out
   fstate = runSHA initialSHA256State processSHA256Block bs_pad
   bs_out = runPut $ synthesizeSHA256 fstate
 
--- |Compute the SHA-384 hash of the given ByteString. Yup, you guessed it, 
+-- |Compute the SHA-384 hash of the given ByteString. Yup, you guessed it,
 -- the output will be exactly 384 bits, or 48 bytes, long.
 sha384 :: ByteString -> Digest
 sha384 bs_in = Digest bs_out
@@ -971,11 +914,11 @@ showDigest (Digest bs) = showDigestBS bs
 
 -- |Prints out a bytestring in hexadecimal. Just for convenience.
 showDigestBS :: ByteString -> String
-showDigestBS bs = concatMap paddedShowHex $ BS.unpack bs
+showDigestBS bs = foldr paddedShowHex [] (BS.unpack bs)
  where
-   paddedShowHex x = toHex (x `shiftR` 4) ++ toHex (x .&. 0xf)
-   toHex x = ["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"]
-             !! (fromIntegral x)
+   paddedShowHex x xs = intToDigit (fromIntegral (x `shiftR` 4))
+                      : intToDigit (fromIntegral (x .&. 0xf))
+                      : xs
 
 -- | Convert a digest to an Integer.
 integerDigest :: Digest -> Integer
