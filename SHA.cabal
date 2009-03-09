@@ -32,7 +32,7 @@ Library
  extensions: CPP, BangPatterns
 
 Executable test_sha
-  build-depends: base >= 3, bytestring, binary, array, QuickCheck >= 1 && < 2
+  build-depends: base >= 3, bytestring, binary, array, QuickCheck == 2.*
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans -funbox-strict-fields
   cpp-options: -DSHA_TEST
   Main-Is: Test.hs
