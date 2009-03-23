@@ -1,6 +1,6 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.2.0.1
+version:    1.2.0.2
 license:    BSD3
 license-file: LICENSE
 author:     Adam Wick <awick@galois.com>
@@ -32,7 +32,7 @@ Library
  extensions: CPP, BangPatterns
 
 Executable test_sha
-  build-depends: base >= 3, bytestring, binary, array, QuickCheck == 2.*
+  build-depends: base >= 3, bytestring, binary, array
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans -funbox-strict-fields
   cpp-options: -DSHA_TEST
   Main-Is: Test.hs
@@ -40,24 +40,30 @@ Executable test_sha
   extensions: CPP, BangPatterns
   if !flag(test)
     buildable: False
+  else
+    build-depends: QuickCheck == 2.*
 
 Executable sha1
-  build-depends: base >= 3, bytestring, binary, array, directory
+  build-depends: base >= 3, bytestring, binary, array
   GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields
   Main-Is: Main.hs
   extensions: CPP, BangPatterns
   cpp-options: -DALGORITHM=sha1
   if !flag(exe)
     buildable: False
+  else
+    build-depends: directory
 
 Executable sha384
-  build-depends: base >= 3, bytestring, binary, array, directory
+  build-depends: base >= 3, bytestring, binary, array
   GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields
   Main-Is: Main.hs
   extensions: CPP, BangPatterns
   cpp-options: -DALGORITHM=sha384
   if !flag(exe)
     buildable: False
+  else
+    build-depends: directory
 
 source-repository head
   type:		git
