@@ -14,7 +14,7 @@ module Data.Digest.Pure.SHA
        , bytestringDigest
 #ifdef SHA_TEST
        , toBigEndianBS, fromBigEndianBS
-       , find_k
+       , calc_k
        , padSHA1, padSHA512
 #endif
        )
@@ -142,19 +142,20 @@ generic_pad :: Word64 -> Word64 -> Int -> ByteString -> ByteString
 generic_pad a b lSize bs = BS.concat [bs, pad_bytes, pad_length]
  where
   l = fromIntegral $ BS.length bs * 8
-  k = find_k a b l
+  k = calc_k a b l
   -- INVARIANT: k is necessarily > 0, and (k + 1) is a multiple of 8.
   k_bytes = (k + 1) `div` 8
   pad_bytes = BS.pack $ 0x80 : take (fromIntegral $ k_bytes - 1) [0,0 ..]
   pad_length = toBigEndianBS lSize l
 
--- Given a, b, and l, find a k such that (l + 1 + k) mod b = a. This is an
--- astoundingly brain-dead implementation.
-find_k :: Word64 -> Word64 -> Word64 -> Word64
-find_k a b l = try_k 7
+-- Given a, b, and l, calculate the smallest k such that (l + 1 + k) mod b = a.
+calc_k :: Word64 -> Word64 -> Word64 -> Word64
+calc_k a b l =
+  if r <= -1
+    then fromIntegral r + b
+    else fromIntegral r
  where
-  try_k k | (l + 1 + k) `mod` b == a = k
-          | otherwise                = try_k (k + 8)
+  r = toInteger a - toInteger l `mod` toInteger b - 1
 
 toBigEndianBS :: (Integral a, Bits a) => Int -> a -> ByteString
 toBigEndianBS s val = BS.pack $ map getBits [s - 8, s - 16 .. 0]
