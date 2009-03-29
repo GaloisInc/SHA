@@ -28,12 +28,12 @@ Flag exe
 Library
  build-depends: base >= 3, bytestring, binary, array
  exposed-modules: Data.Digest.Pure.SHA
- GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields
+ GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
  extensions: CPP, BangPatterns
 
 Executable test_sha
   build-depends: base >= 3, bytestring, binary, array
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans -funbox-strict-fields
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans -funbox-strict-fields -fwarn-tabs
   cpp-options: -DSHA_TEST
   Main-Is: Test.hs
   Other-Modules: Data.Digest.Pure.SHA
@@ -45,7 +45,7 @@ Executable test_sha
 
 Executable sha1
   build-depends: base >= 3, bytestring, binary, array
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
   Main-Is: Main.hs
   extensions: CPP, BangPatterns
   cpp-options: -DALGORITHM=sha1
@@ -56,7 +56,7 @@ Executable sha1
 
 Executable sha384
   build-depends: base >= 3, bytestring, binary, array
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
   Main-Is: Main.hs
   extensions: CPP, BangPatterns
   cpp-options: -DALGORITHM=sha384
