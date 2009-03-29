@@ -12,11 +12,9 @@ main = do
   case args of
     [] -> do
       inconts <- BS.getContents
-      putStrLn $ show $ ALGORITHM inconts
+      print $ ALGORITHM inconts
       exitSuccess
-    xs -> do
-      exit_code <- foldM (sha_file bname) ExitSuccess xs
-      exitWith exit_code 
+    xs -> foldM (sha_file bname) ExitSuccess xs >>= exitWith
 
 sha_file :: String -> ExitCode -> String -> IO ExitCode
 sha_file bname prevEC fname = do

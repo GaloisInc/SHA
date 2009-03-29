@@ -145,7 +145,7 @@ generic_pad a b lSize bs = BS.concat [bs, pad_bytes, pad_length]
   k = find_k a b l
   -- INVARIANT: k is necessarily > 0, and (k + 1) is a multiple of 8.
   k_bytes = (k + 1) `div` 8
-  pad_bytes = BS.pack $ [0x80] ++ (take (fromIntegral $ k_bytes - 1) [0,0 ..])
+  pad_bytes = BS.pack $ 0x80 : take (fromIntegral $ k_bytes - 1) [0,0 ..]
   pad_length = toBigEndianBS lSize l
 
 -- Given a, b, and l, find a k such that (l + 1 + k) mod b = a. This is an
@@ -163,8 +163,8 @@ toBigEndianBS s val = BS.pack $ map getBits [s - 8, s - 16 .. 0]
 
 #ifdef SHA_TEST
 fromBigEndianBS :: (Integral a, Bits a) => ByteString -> a
-fromBigEndianBS bs =
-  BS.foldl (\ acc x -> (acc `shiftL` 8) + (fromIntegral x)) 0 bs
+fromBigEndianBS =
+  BS.foldl (\ acc x -> (acc `shiftL` 8) + fromIntegral x) 0
 #endif
 
 -- --------------------------------------------------------------------------
@@ -176,7 +176,7 @@ fromBigEndianBS bs =
 {-# SPECIALIZE ch :: Word32 -> Word32 -> Word32 -> Word32 #-}
 {-# SPECIALIZE ch :: Word64 -> Word64 -> Word64 -> Word64 #-}
 ch :: Bits a => a -> a -> a -> a
-ch x y z = (x .&. y) `xor` ((complement x) .&. z)
+ch x y z = (x .&. y) `xor` (complement x .&. z)
 
 {-# SPECIALIZE parity :: Word32 -> Word32 -> Word32 -> Word32 #-}
 {-# SPECIALIZE parity :: Word64 -> Word64 -> Word64 -> Word64 #-}
@@ -189,28 +189,28 @@ maj :: Bits a => a -> a -> a -> a
 maj x y z = (x .&. y) `xor` (x .&. z) `xor` (y .&. z)
 
 bsig256_0 :: Word32 -> Word32
-bsig256_0 x = (rotate x (-2)) `xor` (rotate x (-13)) `xor` (rotate x (-22))
+bsig256_0 x = rotate x (-2) `xor` rotate x (-13) `xor` rotate x (-22)
 
 bsig256_1 :: Word32 -> Word32
-bsig256_1 x = (rotate x (-6)) `xor` (rotate x (-11)) `xor` (rotate x (-25))
+bsig256_1 x = rotate x (-6) `xor` rotate x (-11) `xor` rotate x (-25)
 
 lsig256_0 :: Word32 -> Word32
-lsig256_0 x = (rotate x (-7)) `xor` (rotate x (-18)) `xor` (shiftR x 3)
+lsig256_0 x = rotate x (-7) `xor` rotate x (-18) `xor` shiftR x 3
 
 lsig256_1 :: Word32 -> Word32
-lsig256_1 x = (rotate x (-17)) `xor` (rotate x (-19)) `xor` (shiftR x 10)
+lsig256_1 x = rotate x (-17) `xor` rotate x (-19) `xor` shiftR x 10
 
 bsig512_0 :: Word64 -> Word64
-bsig512_0 x = (rotate x (-28)) `xor` (rotate x (-34)) `xor` (rotate x (-39))
+bsig512_0 x = rotate x (-28) `xor` rotate x (-34) `xor` rotate x (-39)
 
 bsig512_1 :: Word64 -> Word64
-bsig512_1 x = (rotate x (-14)) `xor` (rotate x (-18)) `xor` (rotate x (-41))
+bsig512_1 x = rotate x (-14) `xor` rotate x (-18) `xor` rotate x (-41)
 
 lsig512_0 :: Word64 -> Word64
-lsig512_0 x = (rotate x (-1)) `xor` (rotate x (-8)) `xor` (shiftR x 7)
+lsig512_0 x = rotate x (-1) `xor` rotate x (-8) `xor` shiftR x 7
 
 lsig512_1 :: Word64 -> Word64
-lsig512_1 x = (rotate x (-19)) `xor` (rotate x (-61)) `xor` (shiftR x 6)
+lsig512_1 x = rotate x (-19) `xor` rotate x (-61) `xor` shiftR x 6
 
 -- --------------------------------------------------------------------------
 --
@@ -358,54 +358,54 @@ getSHA256Sched = do
   w13 <- getWord32be
   w14 <- getWord32be
   w15 <- getWord32be
-  let w16 = (lsig256_1 w14) + w09 + (lsig256_0 w01) + w00
-      w17 = (lsig256_1 w15) + w10 + (lsig256_0 w02) + w01
-      w18 = (lsig256_1 w16) + w11 + (lsig256_0 w03) + w02
-      w19 = (lsig256_1 w17) + w12 + (lsig256_0 w04) + w03
-      w20 = (lsig256_1 w18) + w13 + (lsig256_0 w05) + w04
-      w21 = (lsig256_1 w19) + w14 + (lsig256_0 w06) + w05
-      w22 = (lsig256_1 w20) + w15 + (lsig256_0 w07) + w06
-      w23 = (lsig256_1 w21) + w16 + (lsig256_0 w08) + w07
-      w24 = (lsig256_1 w22) + w17 + (lsig256_0 w09) + w08
-      w25 = (lsig256_1 w23) + w18 + (lsig256_0 w10) + w09
-      w26 = (lsig256_1 w24) + w19 + (lsig256_0 w11) + w10
-      w27 = (lsig256_1 w25) + w20 + (lsig256_0 w12) + w11
-      w28 = (lsig256_1 w26) + w21 + (lsig256_0 w13) + w12
-      w29 = (lsig256_1 w27) + w22 + (lsig256_0 w14) + w13
-      w30 = (lsig256_1 w28) + w23 + (lsig256_0 w15) + w14
-      w31 = (lsig256_1 w29) + w24 + (lsig256_0 w16) + w15
-      w32 = (lsig256_1 w30) + w25 + (lsig256_0 w17) + w16
-      w33 = (lsig256_1 w31) + w26 + (lsig256_0 w18) + w17
-      w34 = (lsig256_1 w32) + w27 + (lsig256_0 w19) + w18
-      w35 = (lsig256_1 w33) + w28 + (lsig256_0 w20) + w19
-      w36 = (lsig256_1 w34) + w29 + (lsig256_0 w21) + w20
-      w37 = (lsig256_1 w35) + w30 + (lsig256_0 w22) + w21
-      w38 = (lsig256_1 w36) + w31 + (lsig256_0 w23) + w22
-      w39 = (lsig256_1 w37) + w32 + (lsig256_0 w24) + w23
-      w40 = (lsig256_1 w38) + w33 + (lsig256_0 w25) + w24
-      w41 = (lsig256_1 w39) + w34 + (lsig256_0 w26) + w25
-      w42 = (lsig256_1 w40) + w35 + (lsig256_0 w27) + w26
-      w43 = (lsig256_1 w41) + w36 + (lsig256_0 w28) + w27
-      w44 = (lsig256_1 w42) + w37 + (lsig256_0 w29) + w28
-      w45 = (lsig256_1 w43) + w38 + (lsig256_0 w30) + w29
-      w46 = (lsig256_1 w44) + w39 + (lsig256_0 w31) + w30
-      w47 = (lsig256_1 w45) + w40 + (lsig256_0 w32) + w31
-      w48 = (lsig256_1 w46) + w41 + (lsig256_0 w33) + w32
-      w49 = (lsig256_1 w47) + w42 + (lsig256_0 w34) + w33
-      w50 = (lsig256_1 w48) + w43 + (lsig256_0 w35) + w34
-      w51 = (lsig256_1 w49) + w44 + (lsig256_0 w36) + w35
-      w52 = (lsig256_1 w50) + w45 + (lsig256_0 w37) + w36
-      w53 = (lsig256_1 w51) + w46 + (lsig256_0 w38) + w37
-      w54 = (lsig256_1 w52) + w47 + (lsig256_0 w39) + w38
-      w55 = (lsig256_1 w53) + w48 + (lsig256_0 w40) + w39
-      w56 = (lsig256_1 w54) + w49 + (lsig256_0 w41) + w40
-      w57 = (lsig256_1 w55) + w50 + (lsig256_0 w42) + w41
-      w58 = (lsig256_1 w56) + w51 + (lsig256_0 w43) + w42
-      w59 = (lsig256_1 w57) + w52 + (lsig256_0 w44) + w43
-      w60 = (lsig256_1 w58) + w53 + (lsig256_0 w45) + w44
-      w61 = (lsig256_1 w59) + w54 + (lsig256_0 w46) + w45
-      w62 = (lsig256_1 w60) + w55 + (lsig256_0 w47) + w46
-      w63 = (lsig256_1 w61) + w56 + (lsig256_0 w48) + w47
+  let w16 = lsig256_1 w14 + w09 + lsig256_0 w01 + w00
+      w17 = lsig256_1 w15 + w10 + lsig256_0 w02 + w01
+      w18 = lsig256_1 w16 + w11 + lsig256_0 w03 + w02
+      w19 = lsig256_1 w17 + w12 + lsig256_0 w04 + w03
+      w20 = lsig256_1 w18 + w13 + lsig256_0 w05 + w04
+      w21 = lsig256_1 w19 + w14 + lsig256_0 w06 + w05
+      w22 = lsig256_1 w20 + w15 + lsig256_0 w07 + w06
+      w23 = lsig256_1 w21 + w16 + lsig256_0 w08 + w07
+      w24 = lsig256_1 w22 + w17 + lsig256_0 w09 + w08
+      w25 = lsig256_1 w23 + w18 + lsig256_0 w10 + w09
+      w26 = lsig256_1 w24 + w19 + lsig256_0 w11 + w10
+      w27 = lsig256_1 w25 + w20 + lsig256_0 w12 + w11
+      w28 = lsig256_1 w26 + w21 + lsig256_0 w13 + w12
+      w29 = lsig256_1 w27 + w22 + lsig256_0 w14 + w13
+      w30 = lsig256_1 w28 + w23 + lsig256_0 w15 + w14
+      w31 = lsig256_1 w29 + w24 + lsig256_0 w16 + w15
+      w32 = lsig256_1 w30 + w25 + lsig256_0 w17 + w16
+      w33 = lsig256_1 w31 + w26 + lsig256_0 w18 + w17
+      w34 = lsig256_1 w32 + w27 + lsig256_0 w19 + w18
+      w35 = lsig256_1 w33 + w28 + lsig256_0 w20 + w19
+      w36 = lsig256_1 w34 + w29 + lsig256_0 w21 + w20
+      w37 = lsig256_1 w35 + w30 + lsig256_0 w22 + w21
+      w38 = lsig256_1 w36 + w31 + lsig256_0 w23 + w22
+      w39 = lsig256_1 w37 + w32 + lsig256_0 w24 + w23
+      w40 = lsig256_1 w38 + w33 + lsig256_0 w25 + w24
+      w41 = lsig256_1 w39 + w34 + lsig256_0 w26 + w25
+      w42 = lsig256_1 w40 + w35 + lsig256_0 w27 + w26
+      w43 = lsig256_1 w41 + w36 + lsig256_0 w28 + w27
+      w44 = lsig256_1 w42 + w37 + lsig256_0 w29 + w28
+      w45 = lsig256_1 w43 + w38 + lsig256_0 w30 + w29
+      w46 = lsig256_1 w44 + w39 + lsig256_0 w31 + w30
+      w47 = lsig256_1 w45 + w40 + lsig256_0 w32 + w31
+      w48 = lsig256_1 w46 + w41 + lsig256_0 w33 + w32
+      w49 = lsig256_1 w47 + w42 + lsig256_0 w34 + w33
+      w50 = lsig256_1 w48 + w43 + lsig256_0 w35 + w34
+      w51 = lsig256_1 w49 + w44 + lsig256_0 w36 + w35
+      w52 = lsig256_1 w50 + w45 + lsig256_0 w37 + w36
+      w53 = lsig256_1 w51 + w46 + lsig256_0 w38 + w37
+      w54 = lsig256_1 w52 + w47 + lsig256_0 w39 + w38
+      w55 = lsig256_1 w53 + w48 + lsig256_0 w40 + w39
+      w56 = lsig256_1 w54 + w49 + lsig256_0 w41 + w40
+      w57 = lsig256_1 w55 + w50 + lsig256_0 w42 + w41
+      w58 = lsig256_1 w56 + w51 + lsig256_0 w43 + w42
+      w59 = lsig256_1 w57 + w52 + lsig256_0 w44 + w43
+      w60 = lsig256_1 w58 + w53 + lsig256_0 w45 + w44
+      w61 = lsig256_1 w59 + w54 + lsig256_0 w46 + w45
+      w62 = lsig256_1 w60 + w55 + lsig256_0 w47 + w46
+      w63 = lsig256_1 w61 + w56 + lsig256_0 w48 + w47
   return $ SHA256Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09
                        w10 w11 w12 w13 w14 w15 w16 w17 w18 w19
                        w20 w21 w22 w23 w24 w25 w26 w27 w28 w29
@@ -449,70 +449,70 @@ getSHA512Sched = do
   w13 <- getWord64be
   w14 <- getWord64be
   w15 <- getWord64be
-  let w16 = (lsig512_1 w14) + w09 + (lsig512_0 w01) + w00
-      w17 = (lsig512_1 w15) + w10 + (lsig512_0 w02) + w01
-      w18 = (lsig512_1 w16) + w11 + (lsig512_0 w03) + w02
-      w19 = (lsig512_1 w17) + w12 + (lsig512_0 w04) + w03
-      w20 = (lsig512_1 w18) + w13 + (lsig512_0 w05) + w04
-      w21 = (lsig512_1 w19) + w14 + (lsig512_0 w06) + w05
-      w22 = (lsig512_1 w20) + w15 + (lsig512_0 w07) + w06
-      w23 = (lsig512_1 w21) + w16 + (lsig512_0 w08) + w07
-      w24 = (lsig512_1 w22) + w17 + (lsig512_0 w09) + w08
-      w25 = (lsig512_1 w23) + w18 + (lsig512_0 w10) + w09
-      w26 = (lsig512_1 w24) + w19 + (lsig512_0 w11) + w10
-      w27 = (lsig512_1 w25) + w20 + (lsig512_0 w12) + w11
-      w28 = (lsig512_1 w26) + w21 + (lsig512_0 w13) + w12
-      w29 = (lsig512_1 w27) + w22 + (lsig512_0 w14) + w13
-      w30 = (lsig512_1 w28) + w23 + (lsig512_0 w15) + w14
-      w31 = (lsig512_1 w29) + w24 + (lsig512_0 w16) + w15
-      w32 = (lsig512_1 w30) + w25 + (lsig512_0 w17) + w16
-      w33 = (lsig512_1 w31) + w26 + (lsig512_0 w18) + w17
-      w34 = (lsig512_1 w32) + w27 + (lsig512_0 w19) + w18
-      w35 = (lsig512_1 w33) + w28 + (lsig512_0 w20) + w19
-      w36 = (lsig512_1 w34) + w29 + (lsig512_0 w21) + w20
-      w37 = (lsig512_1 w35) + w30 + (lsig512_0 w22) + w21
-      w38 = (lsig512_1 w36) + w31 + (lsig512_0 w23) + w22
-      w39 = (lsig512_1 w37) + w32 + (lsig512_0 w24) + w23
-      w40 = (lsig512_1 w38) + w33 + (lsig512_0 w25) + w24
-      w41 = (lsig512_1 w39) + w34 + (lsig512_0 w26) + w25
-      w42 = (lsig512_1 w40) + w35 + (lsig512_0 w27) + w26
-      w43 = (lsig512_1 w41) + w36 + (lsig512_0 w28) + w27
-      w44 = (lsig512_1 w42) + w37 + (lsig512_0 w29) + w28
-      w45 = (lsig512_1 w43) + w38 + (lsig512_0 w30) + w29
-      w46 = (lsig512_1 w44) + w39 + (lsig512_0 w31) + w30
-      w47 = (lsig512_1 w45) + w40 + (lsig512_0 w32) + w31
-      w48 = (lsig512_1 w46) + w41 + (lsig512_0 w33) + w32
-      w49 = (lsig512_1 w47) + w42 + (lsig512_0 w34) + w33
-      w50 = (lsig512_1 w48) + w43 + (lsig512_0 w35) + w34
-      w51 = (lsig512_1 w49) + w44 + (lsig512_0 w36) + w35
-      w52 = (lsig512_1 w50) + w45 + (lsig512_0 w37) + w36
-      w53 = (lsig512_1 w51) + w46 + (lsig512_0 w38) + w37
-      w54 = (lsig512_1 w52) + w47 + (lsig512_0 w39) + w38
-      w55 = (lsig512_1 w53) + w48 + (lsig512_0 w40) + w39
-      w56 = (lsig512_1 w54) + w49 + (lsig512_0 w41) + w40
-      w57 = (lsig512_1 w55) + w50 + (lsig512_0 w42) + w41
-      w58 = (lsig512_1 w56) + w51 + (lsig512_0 w43) + w42
-      w59 = (lsig512_1 w57) + w52 + (lsig512_0 w44) + w43
-      w60 = (lsig512_1 w58) + w53 + (lsig512_0 w45) + w44
-      w61 = (lsig512_1 w59) + w54 + (lsig512_0 w46) + w45
-      w62 = (lsig512_1 w60) + w55 + (lsig512_0 w47) + w46
-      w63 = (lsig512_1 w61) + w56 + (lsig512_0 w48) + w47
-      w64 = (lsig512_1 w62) + w57 + (lsig512_0 w49) + w48
-      w65 = (lsig512_1 w63) + w58 + (lsig512_0 w50) + w49
-      w66 = (lsig512_1 w64) + w59 + (lsig512_0 w51) + w50
-      w67 = (lsig512_1 w65) + w60 + (lsig512_0 w52) + w51
-      w68 = (lsig512_1 w66) + w61 + (lsig512_0 w53) + w52
-      w69 = (lsig512_1 w67) + w62 + (lsig512_0 w54) + w53
-      w70 = (lsig512_1 w68) + w63 + (lsig512_0 w55) + w54
-      w71 = (lsig512_1 w69) + w64 + (lsig512_0 w56) + w55
-      w72 = (lsig512_1 w70) + w65 + (lsig512_0 w57) + w56
-      w73 = (lsig512_1 w71) + w66 + (lsig512_0 w58) + w57
-      w74 = (lsig512_1 w72) + w67 + (lsig512_0 w59) + w58
-      w75 = (lsig512_1 w73) + w68 + (lsig512_0 w60) + w59
-      w76 = (lsig512_1 w74) + w69 + (lsig512_0 w61) + w60
-      w77 = (lsig512_1 w75) + w70 + (lsig512_0 w62) + w61
-      w78 = (lsig512_1 w76) + w71 + (lsig512_0 w63) + w62
-      w79 = (lsig512_1 w77) + w72 + (lsig512_0 w64) + w63
+  let w16 = lsig512_1 w14 + w09 + lsig512_0 w01 + w00
+      w17 = lsig512_1 w15 + w10 + lsig512_0 w02 + w01
+      w18 = lsig512_1 w16 + w11 + lsig512_0 w03 + w02
+      w19 = lsig512_1 w17 + w12 + lsig512_0 w04 + w03
+      w20 = lsig512_1 w18 + w13 + lsig512_0 w05 + w04
+      w21 = lsig512_1 w19 + w14 + lsig512_0 w06 + w05
+      w22 = lsig512_1 w20 + w15 + lsig512_0 w07 + w06
+      w23 = lsig512_1 w21 + w16 + lsig512_0 w08 + w07
+      w24 = lsig512_1 w22 + w17 + lsig512_0 w09 + w08
+      w25 = lsig512_1 w23 + w18 + lsig512_0 w10 + w09
+      w26 = lsig512_1 w24 + w19 + lsig512_0 w11 + w10
+      w27 = lsig512_1 w25 + w20 + lsig512_0 w12 + w11
+      w28 = lsig512_1 w26 + w21 + lsig512_0 w13 + w12
+      w29 = lsig512_1 w27 + w22 + lsig512_0 w14 + w13
+      w30 = lsig512_1 w28 + w23 + lsig512_0 w15 + w14
+      w31 = lsig512_1 w29 + w24 + lsig512_0 w16 + w15
+      w32 = lsig512_1 w30 + w25 + lsig512_0 w17 + w16
+      w33 = lsig512_1 w31 + w26 + lsig512_0 w18 + w17
+      w34 = lsig512_1 w32 + w27 + lsig512_0 w19 + w18
+      w35 = lsig512_1 w33 + w28 + lsig512_0 w20 + w19
+      w36 = lsig512_1 w34 + w29 + lsig512_0 w21 + w20
+      w37 = lsig512_1 w35 + w30 + lsig512_0 w22 + w21
+      w38 = lsig512_1 w36 + w31 + lsig512_0 w23 + w22
+      w39 = lsig512_1 w37 + w32 + lsig512_0 w24 + w23
+      w40 = lsig512_1 w38 + w33 + lsig512_0 w25 + w24
+      w41 = lsig512_1 w39 + w34 + lsig512_0 w26 + w25
+      w42 = lsig512_1 w40 + w35 + lsig512_0 w27 + w26
+      w43 = lsig512_1 w41 + w36 + lsig512_0 w28 + w27
+      w44 = lsig512_1 w42 + w37 + lsig512_0 w29 + w28
+      w45 = lsig512_1 w43 + w38 + lsig512_0 w30 + w29
+      w46 = lsig512_1 w44 + w39 + lsig512_0 w31 + w30
+      w47 = lsig512_1 w45 + w40 + lsig512_0 w32 + w31
+      w48 = lsig512_1 w46 + w41 + lsig512_0 w33 + w32
+      w49 = lsig512_1 w47 + w42 + lsig512_0 w34 + w33
+      w50 = lsig512_1 w48 + w43 + lsig512_0 w35 + w34
+      w51 = lsig512_1 w49 + w44 + lsig512_0 w36 + w35
+      w52 = lsig512_1 w50 + w45 + lsig512_0 w37 + w36
+      w53 = lsig512_1 w51 + w46 + lsig512_0 w38 + w37
+      w54 = lsig512_1 w52 + w47 + lsig512_0 w39 + w38
+      w55 = lsig512_1 w53 + w48 + lsig512_0 w40 + w39
+      w56 = lsig512_1 w54 + w49 + lsig512_0 w41 + w40
+      w57 = lsig512_1 w55 + w50 + lsig512_0 w42 + w41
+      w58 = lsig512_1 w56 + w51 + lsig512_0 w43 + w42
+      w59 = lsig512_1 w57 + w52 + lsig512_0 w44 + w43
+      w60 = lsig512_1 w58 + w53 + lsig512_0 w45 + w44
+      w61 = lsig512_1 w59 + w54 + lsig512_0 w46 + w45
+      w62 = lsig512_1 w60 + w55 + lsig512_0 w47 + w46
+      w63 = lsig512_1 w61 + w56 + lsig512_0 w48 + w47
+      w64 = lsig512_1 w62 + w57 + lsig512_0 w49 + w48
+      w65 = lsig512_1 w63 + w58 + lsig512_0 w50 + w49
+      w66 = lsig512_1 w64 + w59 + lsig512_0 w51 + w50
+      w67 = lsig512_1 w65 + w60 + lsig512_0 w52 + w51
+      w68 = lsig512_1 w66 + w61 + lsig512_0 w53 + w52
+      w69 = lsig512_1 w67 + w62 + lsig512_0 w54 + w53
+      w70 = lsig512_1 w68 + w63 + lsig512_0 w55 + w54
+      w71 = lsig512_1 w69 + w64 + lsig512_0 w56 + w55
+      w72 = lsig512_1 w70 + w65 + lsig512_0 w57 + w56
+      w73 = lsig512_1 w71 + w66 + lsig512_0 w58 + w57
+      w74 = lsig512_1 w72 + w67 + lsig512_0 w59 + w58
+      w75 = lsig512_1 w73 + w68 + lsig512_0 w60 + w59
+      w76 = lsig512_1 w74 + w69 + lsig512_0 w61 + w60
+      w77 = lsig512_1 w75 + w70 + lsig512_0 w62 + w61
+      w78 = lsig512_1 w76 + w71 + lsig512_0 w63 + w62
+      w79 = lsig512_1 w77 + w72 + lsig512_0 w64 + w63
   return $ SHA512Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09
                        w10 w11 w12 w13 w14 w15 w16 w17 w18 w19
                        w20 w21 w22 w23 w24 w25 w26 w27 w28 w29
@@ -626,7 +626,7 @@ step1 :: SHA1State -> Word32 ->
          (Word32 -> Word32 -> Word32 -> Word32) -> Word32 ->
          SHA1State
 step1 !(SHA1S a b c d e) k !f w = SHA1S a' b' c' d' e'
- where a' = (rotate a 5) + (f b c d) + e + k + w
+ where a' = rotate a 5 + f b c d + e + k + w
        b' = a
        c' = rotate b 30
        d' = c
@@ -846,8 +846,7 @@ runSHA s nextChunk input = runGet (getAll s) input
     done <- isEmpty
     if done
       then return s_in
-      else do s_out <- nextChunk s_in
-              getAll s_out
+      else nextChunk s_in >>= getAll
 
 -- |Compute the SHA-1 hash of the given ByteString. The output is guaranteed
 -- to be exactly 160 bits, or 20 bytes, long. This is a good default for
