@@ -180,15 +180,17 @@ fromBigEndianBS =
 ch :: Bits a => a -> a -> a -> a
 ch x y z = (x .&. y) `xor` (complement x .&. z)
 
-{-# SPECIALIZE parity :: Word32 -> Word32 -> Word32 -> Word32 #-}
-{-# SPECIALIZE parity :: Word64 -> Word64 -> Word64 -> Word64 #-}
-parity :: Bits a => a -> a -> a -> a
-parity x y z = x `xor` y `xor` z
-
 {-# SPECIALIZE maj :: Word32 -> Word32 -> Word32 -> Word32 #-}
 {-# SPECIALIZE maj :: Word64 -> Word64 -> Word64 -> Word64 #-}
 maj :: Bits a => a -> a -> a -> a
-maj x y z = (x .&. y) `xor` (x .&. z) `xor` (y .&. z)
+maj x y z = (x .&. (y .|. z)) .|. (y .&. z)
+-- note:
+--   the original functions is (x & y) ^ (x & z) ^ (y & z)
+--   if you fire off truth tables, this is equivalent to 
+--     (x & y) | (x & z) | (y & z)
+--   which you can the use distribution on:
+--     (x & (y | z)) | (y & z)
+--   which saves us one operation.
 
 bsig256_0 :: Word32 -> Word32
 bsig256_0 x = rotate x (-2) `xor` rotate x (-13) `xor` rotate x (-22)
@@ -540,99 +542,116 @@ processSHA1Block s00@(SHA1S a00 b00 c00 d00 e00) = do
              w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
              w60 w61 w62 w63 w64 w65 w66 w67 w68 w69
              w70 w71 w72 w73 w74 w75 w76 w77 w78 w79) <- getSHA1Sched
-  let s01 = step1 s00 0x5a827999     ch w00
-      s02 = step1 s01 0x5a827999     ch w01
-      s03 = step1 s02 0x5a827999     ch w02
-      s04 = step1 s03 0x5a827999     ch w03
-      s05 = step1 s04 0x5a827999     ch w04
-      s06 = step1 s05 0x5a827999     ch w05
-      s07 = step1 s06 0x5a827999     ch w06
-      s08 = step1 s07 0x5a827999     ch w07
-      s09 = step1 s08 0x5a827999     ch w08
-      s10 = step1 s09 0x5a827999     ch w09
-      s11 = step1 s10 0x5a827999     ch w10
-      s12 = step1 s11 0x5a827999     ch w11
-      s13 = step1 s12 0x5a827999     ch w12
-      s14 = step1 s13 0x5a827999     ch w13
-      s15 = step1 s14 0x5a827999     ch w14
-      s16 = step1 s15 0x5a827999     ch w15
-      s17 = step1 s16 0x5a827999     ch w16
-      s18 = step1 s17 0x5a827999     ch w17
-      s19 = step1 s18 0x5a827999     ch w18
-      s20 = step1 s19 0x5a827999     ch w19
-      s21 = step1 s20 0x6ed9eba1 parity w20
-      s22 = step1 s21 0x6ed9eba1 parity w21
-      s23 = step1 s22 0x6ed9eba1 parity w22
-      s24 = step1 s23 0x6ed9eba1 parity w23
-      s25 = step1 s24 0x6ed9eba1 parity w24
-      s26 = step1 s25 0x6ed9eba1 parity w25
-      s27 = step1 s26 0x6ed9eba1 parity w26
-      s28 = step1 s27 0x6ed9eba1 parity w27
-      s29 = step1 s28 0x6ed9eba1 parity w28
-      s30 = step1 s29 0x6ed9eba1 parity w29
-      s31 = step1 s30 0x6ed9eba1 parity w30
-      s32 = step1 s31 0x6ed9eba1 parity w31
-      s33 = step1 s32 0x6ed9eba1 parity w32
-      s34 = step1 s33 0x6ed9eba1 parity w33
-      s35 = step1 s34 0x6ed9eba1 parity w34
-      s36 = step1 s35 0x6ed9eba1 parity w35
-      s37 = step1 s36 0x6ed9eba1 parity w36
-      s38 = step1 s37 0x6ed9eba1 parity w37
-      s39 = step1 s38 0x6ed9eba1 parity w38
-      s40 = step1 s39 0x6ed9eba1 parity w39
-      s41 = step1 s40 0x8f1bbcdc    maj w40
-      s42 = step1 s41 0x8f1bbcdc    maj w41
-      s43 = step1 s42 0x8f1bbcdc    maj w42
-      s44 = step1 s43 0x8f1bbcdc    maj w43
-      s45 = step1 s44 0x8f1bbcdc    maj w44
-      s46 = step1 s45 0x8f1bbcdc    maj w45
-      s47 = step1 s46 0x8f1bbcdc    maj w46
-      s48 = step1 s47 0x8f1bbcdc    maj w47
-      s49 = step1 s48 0x8f1bbcdc    maj w48
-      s50 = step1 s49 0x8f1bbcdc    maj w49
-      s51 = step1 s50 0x8f1bbcdc    maj w50
-      s52 = step1 s51 0x8f1bbcdc    maj w51
-      s53 = step1 s52 0x8f1bbcdc    maj w52
-      s54 = step1 s53 0x8f1bbcdc    maj w53
-      s55 = step1 s54 0x8f1bbcdc    maj w54
-      s56 = step1 s55 0x8f1bbcdc    maj w55
-      s57 = step1 s56 0x8f1bbcdc    maj w56
-      s58 = step1 s57 0x8f1bbcdc    maj w57
-      s59 = step1 s58 0x8f1bbcdc    maj w58
-      s60 = step1 s59 0x8f1bbcdc    maj w59
-      s61 = step1 s60 0xca62c1d6 parity w60
-      s62 = step1 s61 0xca62c1d6 parity w61
-      s63 = step1 s62 0xca62c1d6 parity w62
-      s64 = step1 s63 0xca62c1d6 parity w63
-      s65 = step1 s64 0xca62c1d6 parity w64
-      s66 = step1 s65 0xca62c1d6 parity w65
-      s67 = step1 s66 0xca62c1d6 parity w66
-      s68 = step1 s67 0xca62c1d6 parity w67
-      s69 = step1 s68 0xca62c1d6 parity w68
-      s70 = step1 s69 0xca62c1d6 parity w69
-      s71 = step1 s70 0xca62c1d6 parity w70
-      s72 = step1 s71 0xca62c1d6 parity w71
-      s73 = step1 s72 0xca62c1d6 parity w72
-      s74 = step1 s73 0xca62c1d6 parity w73
-      s75 = step1 s74 0xca62c1d6 parity w74
-      s76 = step1 s75 0xca62c1d6 parity w75
-      s77 = step1 s76 0xca62c1d6 parity w76
-      s78 = step1 s77 0xca62c1d6 parity w77
-      s79 = step1 s78 0xca62c1d6 parity w78
-      s80 = step1 s79 0xca62c1d6 parity w79
+  let s01 = step1_ch  s00 0x5a827999 w00
+      s02 = step1_ch  s01 0x5a827999 w01
+      s03 = step1_ch  s02 0x5a827999 w02
+      s04 = step1_ch  s03 0x5a827999 w03
+      s05 = step1_ch  s04 0x5a827999 w04
+      s06 = step1_ch  s05 0x5a827999 w05
+      s07 = step1_ch  s06 0x5a827999 w06
+      s08 = step1_ch  s07 0x5a827999 w07
+      s09 = step1_ch  s08 0x5a827999 w08
+      s10 = step1_ch  s09 0x5a827999 w09
+      s11 = step1_ch  s10 0x5a827999 w10
+      s12 = step1_ch  s11 0x5a827999 w11
+      s13 = step1_ch  s12 0x5a827999 w12
+      s14 = step1_ch  s13 0x5a827999 w13
+      s15 = step1_ch  s14 0x5a827999 w14
+      s16 = step1_ch  s15 0x5a827999 w15
+      s17 = step1_ch  s16 0x5a827999 w16
+      s18 = step1_ch  s17 0x5a827999 w17
+      s19 = step1_ch  s18 0x5a827999 w18
+      s20 = step1_ch  s19 0x5a827999 w19
+      s21 = step1_par s20 0x6ed9eba1 w20
+      s22 = step1_par s21 0x6ed9eba1 w21
+      s23 = step1_par s22 0x6ed9eba1 w22
+      s24 = step1_par s23 0x6ed9eba1 w23
+      s25 = step1_par s24 0x6ed9eba1 w24
+      s26 = step1_par s25 0x6ed9eba1 w25
+      s27 = step1_par s26 0x6ed9eba1 w26
+      s28 = step1_par s27 0x6ed9eba1 w27
+      s29 = step1_par s28 0x6ed9eba1 w28
+      s30 = step1_par s29 0x6ed9eba1 w29
+      s31 = step1_par s30 0x6ed9eba1 w30
+      s32 = step1_par s31 0x6ed9eba1 w31
+      s33 = step1_par s32 0x6ed9eba1 w32
+      s34 = step1_par s33 0x6ed9eba1 w33
+      s35 = step1_par s34 0x6ed9eba1 w34
+      s36 = step1_par s35 0x6ed9eba1 w35
+      s37 = step1_par s36 0x6ed9eba1 w36
+      s38 = step1_par s37 0x6ed9eba1 w37
+      s39 = step1_par s38 0x6ed9eba1 w38
+      s40 = step1_par s39 0x6ed9eba1 w39
+      s41 = step1_maj s40 0x8f1bbcdc w40
+      s42 = step1_maj s41 0x8f1bbcdc w41
+      s43 = step1_maj s42 0x8f1bbcdc w42
+      s44 = step1_maj s43 0x8f1bbcdc w43
+      s45 = step1_maj s44 0x8f1bbcdc w44
+      s46 = step1_maj s45 0x8f1bbcdc w45
+      s47 = step1_maj s46 0x8f1bbcdc w46
+      s48 = step1_maj s47 0x8f1bbcdc w47
+      s49 = step1_maj s48 0x8f1bbcdc w48
+      s50 = step1_maj s49 0x8f1bbcdc w49
+      s51 = step1_maj s50 0x8f1bbcdc w50
+      s52 = step1_maj s51 0x8f1bbcdc w51
+      s53 = step1_maj s52 0x8f1bbcdc w52
+      s54 = step1_maj s53 0x8f1bbcdc w53
+      s55 = step1_maj s54 0x8f1bbcdc w54
+      s56 = step1_maj s55 0x8f1bbcdc w55
+      s57 = step1_maj s56 0x8f1bbcdc w56
+      s58 = step1_maj s57 0x8f1bbcdc w57
+      s59 = step1_maj s58 0x8f1bbcdc w58
+      s60 = step1_maj s59 0x8f1bbcdc w59
+      s61 = step1_par s60 0xca62c1d6 w60
+      s62 = step1_par s61 0xca62c1d6 w61
+      s63 = step1_par s62 0xca62c1d6 w62
+      s64 = step1_par s63 0xca62c1d6 w63
+      s65 = step1_par s64 0xca62c1d6 w64
+      s66 = step1_par s65 0xca62c1d6 w65
+      s67 = step1_par s66 0xca62c1d6 w66
+      s68 = step1_par s67 0xca62c1d6 w67
+      s69 = step1_par s68 0xca62c1d6 w68
+      s70 = step1_par s69 0xca62c1d6 w69
+      s71 = step1_par s70 0xca62c1d6 w70
+      s72 = step1_par s71 0xca62c1d6 w71
+      s73 = step1_par s72 0xca62c1d6 w72
+      s74 = step1_par s73 0xca62c1d6 w73
+      s75 = step1_par s74 0xca62c1d6 w74
+      s76 = step1_par s75 0xca62c1d6 w75
+      s77 = step1_par s76 0xca62c1d6 w76
+      s78 = step1_par s77 0xca62c1d6 w77
+      s79 = step1_par s78 0xca62c1d6 w78
+      s80 = step1_par s79 0xca62c1d6 w79
       SHA1S a80 b80 c80 d80 e80 = s80
   return $ SHA1S (a00 + a80) (b00 + b80) (c00 + c80) (d00 + d80) (e00 + e80)
 
-{-# INLINE step1 #-}
-step1 :: SHA1State -> Word32 ->
-         (Word32 -> Word32 -> Word32 -> Word32) -> Word32 ->
-         SHA1State
-step1 !(SHA1S a b c d e) k !f w = SHA1S a' b' c' d' e'
- where a' = rotate a 5 + f b c d + e + k + w
+{-# INLINE step1_ch #-}
+step1_ch :: SHA1State -> Word32 -> Word32 -> SHA1State
+step1_ch !(SHA1S a b c d e) k w = SHA1S a' b' c' d' e'
+ where a' = rotate a 5 + ((b .&. c) `xor` (complement b .&. d)) + e + k + w
        b' = a
        c' = rotate b 30
        d' = c
        e' = d
+
+{-# INLINE step1_par #-}
+step1_par :: SHA1State -> Word32 -> Word32 -> SHA1State
+step1_par !(SHA1S a b c d e) k w = SHA1S a' b' c' d' e'
+ where a' = rotate a 5 + (b `xor` c `xor` d) + e + k + w
+       b' = a
+       c' = rotate b 30
+       d' = c
+       e' = d
+
+{-# INLINE step1_maj #-}
+step1_maj :: SHA1State -> Word32 -> Word32 -> SHA1State
+step1_maj !(SHA1S a b c d e) k w = SHA1S a' b' c' d' e'
+ where a' = rotate a 5 + ((b .&. (c .|. d)) .|. (c .&. d)) + e + k + w
+       b' = a
+       c' = rotate b 30
+       d' = c
+       e' = d
+-- See the note on maj, above
 
 processSHA256Block :: SHA256State -> Get SHA256State
 processSHA256Block !s00@(SHA256S a00 b00 c00 d00 e00 f00 g00 h00) = do
