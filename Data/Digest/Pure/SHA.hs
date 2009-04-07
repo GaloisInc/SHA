@@ -3,15 +3,23 @@
 -- is basically an unoptimized translation of FIPS 180-2 into Haskell. If you're
 -- looking for performance, you probably won't find it here.
 module Data.Digest.Pure.SHA
-       ( Digest
+       ( -- * 'Digest' and related functions
+         Digest
+       , showDigest
+       , integerDigest
+       , bytestringDigest
+         -- * Calculating hashes
        , sha1
        , sha224
        , sha256
        , sha384
        , sha512
-       , showDigest
-       , integerDigest
-       , bytestringDigest
+         -- * Calculating message authentication codes (MACs)
+       , hmacSha1
+       , hmacSha224
+       , hmacSha256
+       , hmacSha384
+       , hmacSha512
 #ifdef SHA_TEST
        , toBigEndianBS, fromBigEndianBS
        , calc_k
@@ -919,6 +927,61 @@ sha512 bs_in = Digest bs_out
   bs_pad = padSHA512 bs_in
   fstate = runSHA initialSHA512State processSHA512Block bs_pad
   bs_out = runPut $ synthesizeSHA512 fstate
+
+-- --------------------------------------------------------------------------
+
+-- | Compute an HMAC using SHA-1.
+hmacSha1
+  :: ByteString  -- ^ secret key
+  -> ByteString  -- ^ message
+  -> Digest      -- ^ SHA-1 MAC
+hmacSha1 = hmac sha1 64
+
+-- | Compute an HMAC using SHA-224.
+hmacSha224
+  :: ByteString  -- ^ secret key
+  -> ByteString  -- ^ message
+  -> Digest      -- ^ SHA-224 MAC
+hmacSha224 = hmac sha224 64
+
+-- | Compute an HMAC using SHA-256.
+hmacSha256
+  :: ByteString  -- ^ secret key
+  -> ByteString  -- ^ message
+  -> Digest      -- ^ SHA-256 MAC
+hmacSha256 = hmac sha256 64
+
+-- | Compute an HMAC using SHA-384.
+hmacSha384
+  :: ByteString  -- ^ secret key
+  -> ByteString  -- ^ message
+  -> Digest      -- ^ SHA-384 MAC
+hmacSha384 = hmac sha384 128
+
+-- | Compute an HMAC using SHA-512.
+hmacSha512
+  :: ByteString  -- ^ secret key
+  -> ByteString  -- ^ message
+  -> Digest      -- ^ SHA-512 MAC
+hmacSha512 = hmac sha512 128
+
+-- --------------------------------------------------------------------------
+
+hmac :: (ByteString -> Digest) -> Int -> ByteString -> ByteString -> Digest
+hmac f bl k m = f (BS.append opad (bytestringDigest (f (BS.append ipad m))))
+ where
+  opad = BS.map (xor ov) k'
+  ipad = BS.map (xor iv) k'
+  ov = 0x5c :: Word8
+  iv = 0x36 :: Word8
+
+  k' = BS.append kt pad
+   where
+    kt  = if kn > bn then bytestringDigest (f k) else k
+    pad = BS.replicate (bn - ktn) 0
+    kn  = fromIntegral (BS.length k)
+    ktn = fromIntegral (BS.length kt)
+    bn  = fromIntegral bl
 
 -- --------------------------------------------------------------------------
 --
