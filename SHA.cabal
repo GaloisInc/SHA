@@ -1,9 +1,9 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.2.1
+version:    1.4.0
 license:    BSD3
 license-file: LICENSE
-author:     Adam Wick <awick@galois.com>
+author:     Adam Wick <awick@galois.com>, Brian Lewis <brian@lorf.org>
 maintainer: Adam Wick <awick@galois.com>
 stability:  stable
 build-type: Simple
@@ -11,11 +11,12 @@ cabal-version: >= 1.6
 tested-with: GHC ==6.8.0
 synopsis: Implementations of the SHA suite of message digest functions
 description: This library implements the SHA suite of message digest functions,
-             according to NIST FIPS 180-2 (with the SHA-224 addendum). The
-             functions have been tested against most of the NIST test vectors
-             for the various functions. While some attention has been paid to
-             performance, these do not presently reach the speed of
-             well-tuned libraries, like OpenSSL.
+             according to NIST FIPS 180-2 (with the SHA-224 addendum), as well
+             as the SHA-based HMAC routines. The functions have been tested 
+             against most of the NIST and RFC test vectors for the various
+             functions. While some attention has been paid to performance, 
+             these do not presently reach the speed of well-tuned libraries, 
+             like OpenSSL.
 
 Flag Test
  Description: Build the SHA test suite.
