@@ -27,13 +27,13 @@ Flag exe
  Default: False
 
 Library
- build-depends: base >= 4, bytestring, binary, array
+ build-depends: base >= 4 && < 6, bytestring, binary, array
  exposed-modules: Data.Digest.Pure.SHA
  GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
  extensions: CPP, BangPatterns
 
 Executable test_sha
-  build-depends: base >= 4, bytestring, binary, array
+  build-depends: base >= 4 && < 6, bytestring, binary, array
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans -funbox-strict-fields -fwarn-tabs
   cpp-options: -DSHA_TEST
   Main-Is: Test.hs
@@ -47,7 +47,7 @@ Executable test_sha
     Ghc-Options: -fregs-graph
 
 Executable sha1
-  build-depends: base >= 4, bytestring, binary, array
+  build-depends: base >= 4 && < 6, bytestring, binary, array
   GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
   Main-Is: Main.hs
   extensions: CPP, BangPatterns
@@ -60,7 +60,7 @@ Executable sha1
     Ghc-Options: -fregs-graph
 
 Executable sha384
-  build-depends: base >= 4, bytestring, binary, array
+  build-depends: base >= 4 && < 6, bytestring, binary, array
   GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
   Main-Is: Main.hs
   extensions: CPP, BangPatterns
