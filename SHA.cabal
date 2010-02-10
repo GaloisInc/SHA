@@ -68,4 +68,4 @@ Executable sha384
 
 source-repository head
   type:     git
-  location: git://code.haskell.org/SHA.git
+  location: git://code.galois.com/SHA.git
