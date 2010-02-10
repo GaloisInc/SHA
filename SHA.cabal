@@ -27,13 +27,13 @@ Flag exe
  Default: False
 
 Library
- build-depends: base >= 3, bytestring, binary, array
+ build-depends: base >= 4, bytestring, binary, array
  exposed-modules: Data.Digest.Pure.SHA
  GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
  extensions: CPP, BangPatterns
 
 Executable test_sha
-  build-depends: base >= 3, bytestring, binary, array
+  build-depends: base >= 4, bytestring, binary, array
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans -funbox-strict-fields -fwarn-tabs
   cpp-options: -DSHA_TEST
   Main-Is: Test.hs
@@ -43,9 +43,11 @@ Executable test_sha
     buildable: False
   else
     build-depends: QuickCheck == 2.*
+  if impl(ghc >= 6.12)
+    Ghc-Options: -fregs-graph
 
 Executable sha1
-  build-depends: base >= 3, bytestring, binary, array
+  build-depends: base >= 4, bytestring, binary, array
   GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
   Main-Is: Main.hs
   extensions: CPP, BangPatterns
@@ -54,9 +56,11 @@ Executable sha1
     buildable: False
   else
     build-depends: directory
+  if impl(ghc >= 6.12)
+    Ghc-Options: -fregs-graph
 
 Executable sha384
-  build-depends: base >= 3, bytestring, binary, array
+  build-depends: base >= 4, bytestring, binary, array
   GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
   Main-Is: Main.hs
   extensions: CPP, BangPatterns
@@ -65,6 +69,8 @@ Executable sha384
     buildable: False
   else
     build-depends: directory
+  if impl(ghc >= 6.12)
+    Ghc-Options: -fregs-graph
 
 source-repository head
   type:     git
