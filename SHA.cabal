@@ -1,6 +1,6 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.4.1
+version:    1.4.1.1
 license:    BSD3
 license-file: LICENSE
 author:     Adam Wick <awick@galois.com>, Brian Lewis <brian@lorf.org>
@@ -31,6 +31,8 @@ Library
  exposed-modules: Data.Digest.Pure.SHA
  GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
  extensions: CPP, BangPatterns
+ if impl(ghc >= 6.12)
+   Ghc-Options: -fregs-graph
 
 Executable test_sha
   build-depends: base >= 4 && < 6, bytestring, binary, array
