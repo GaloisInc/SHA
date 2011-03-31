@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP #-}
+{-# LANGUAGE BangPatterns, CPP, FlexibleInstances #-}
 -- |Pure implementations of the SHA suite of hash functions. The implementation
 -- is basically an unoptimized translation of FIPS 180-2 into Haskell. If you're
 -- looking for performance, you probably won't find it here.
@@ -35,13 +35,24 @@ import Data.Bits
 import Data.ByteString.Lazy(ByteString)
 import qualified Data.ByteString.Lazy as BS
 import Data.Char (intToDigit)
-import Data.Word
 
 -- | An abstract datatype for digests.
 newtype Digest t = Digest ByteString deriving (Eq,Ord)
 
 instance Show (Digest t) where
   show = showDigest
+
+instance Binary (Digest SHA1State) where
+  get = fmap Digest $ getLazyByteString 20
+  put (Digest bs) = put bs
+
+instance Binary (Digest SHA256State) where
+  get = fmap Digest $ getLazyByteString 32
+  put (Digest bs) = put bs
+
+instance Binary (Digest SHA512State) where
+  get = fmap Digest $ getLazyByteString 64
+  put (Digest bs) = put bs
 
 -- --------------------------------------------------------------------------
 --
@@ -113,17 +124,6 @@ synthesizeSHA224 (SHA256S a b c d e f g _) = do
   putWord32be e
   putWord32be f
   putWord32be g
-
-getSHA224 :: Get SHA256State
-getSHA224 = do
-  a <- getWord32be
-  b <- getWord32be
-  c <- getWord32be
-  d <- getWord32be
-  e <- getWord32be
-  f <- getWord32be
-  g <- getWord32be
-  return $ SHA256S a b c d e f g 0
   
 synthesizeSHA256 :: SHA256State -> Put
 synthesizeSHA256 (SHA256S a b c d e f g h) = do
@@ -156,16 +156,6 @@ synthesizeSHA384 (SHA512S a b c d e f _ _) = do
   putWord64be d
   putWord64be e
   putWord64be f
-
-getSHA384 :: Get SHA512State
-getSHA384 = do
-  a <- getWord64be
-  b <- getWord64be
-  c <- getWord64be
-  d <- getWord64be
-  e <- getWord64be
-  f <- getWord64be
-  return $ SHA512S a b c d e f 0 0
   
 synthesizeSHA512 :: SHA512State -> Put
 synthesizeSHA512 (SHA512S a b c d e f g h) = do
