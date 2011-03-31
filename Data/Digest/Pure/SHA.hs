@@ -38,9 +38,9 @@ import Data.Char (intToDigit)
 import Data.Word
 
 -- | An abstract datatype for digests.
-newtype Digest = Digest ByteString deriving (Eq,Ord)
+newtype Digest t = Digest ByteString deriving (Eq,Ord)
 
-instance Show Digest where
+instance Show (Digest t) where
   show = showDigest
 
 -- --------------------------------------------------------------------------
@@ -949,7 +949,7 @@ runSHA s nextChunk input = runGet (getAll s) input
 -- |Compute the SHA-1 hash of the given ByteString. The output is guaranteed
 -- to be exactly 160 bits, or 20 bytes, long. This is a good default for
 -- programs that need a good, but not necessarily hyper-secure, hash function.
-sha1 :: ByteString -> Digest
+sha1 :: ByteString -> Digest SHA1State
 sha1 bs_in = Digest bs_out
  where
   bs_pad = padSHA1 bs_in
@@ -960,7 +960,7 @@ sha1 bs_in = Digest bs_out
 -- SHA-384 differ only slightly from SHA-256 and SHA-512, and use truncated
 -- versions of the resulting hashes. So using 224/384 may not, in fact, save
 -- you very much ...
-sha224 :: ByteString -> Digest
+sha224 :: ByteString -> Digest SHA256State
 sha224 bs_in = Digest bs_out
  where
   bs_pad = padSHA1 bs_in
@@ -971,7 +971,7 @@ sha224 bs_in = Digest bs_out
 -- to be exactly 256 bits, or 32 bytes, long. If your security requirements
 -- are pretty serious, this is a good choice. For truly significant security
 -- concerns, however, you might try one of the bigger options.
-sha256 :: ByteString -> Digest
+sha256 :: ByteString -> Digest SHA256State
 sha256 bs_in = Digest bs_out
  where
   bs_pad = padSHA1 bs_in
@@ -980,7 +980,7 @@ sha256 bs_in = Digest bs_out
 
 -- |Compute the SHA-384 hash of the given ByteString. Yup, you guessed it,
 -- the output will be exactly 384 bits, or 48 bytes, long.
-sha384 :: ByteString -> Digest
+sha384 :: ByteString -> Digest SHA512State
 sha384 bs_in = Digest bs_out
  where
   bs_pad = padSHA512 bs_in
@@ -990,7 +990,7 @@ sha384 bs_in = Digest bs_out
 -- |For those for whom only the biggest hashes will do, this computes the
 -- SHA-512 hash of the given ByteString. The output will be 64 bytes, or
 -- 512 bits, long.
-sha512 :: ByteString -> Digest
+sha512 :: ByteString -> Digest SHA512State
 sha512 bs_in = Digest bs_out
  where
   bs_pad = padSHA512 bs_in
@@ -1003,40 +1003,40 @@ sha512 bs_in = Digest bs_out
 hmacSha1
   :: ByteString  -- ^ secret key
   -> ByteString  -- ^ message
-  -> Digest      -- ^ SHA-1 MAC
+  -> Digest SHA1State     -- ^ SHA-1 MAC
 hmacSha1 = hmac sha1 64
 
 -- | Compute an HMAC using SHA-224.
 hmacSha224
   :: ByteString  -- ^ secret key
   -> ByteString  -- ^ message
-  -> Digest      -- ^ SHA-224 MAC
+  -> Digest SHA256State     -- ^ SHA-224 MAC
 hmacSha224 = hmac sha224 64
 
 -- | Compute an HMAC using SHA-256.
 hmacSha256
   :: ByteString  -- ^ secret key
   -> ByteString  -- ^ message
-  -> Digest      -- ^ SHA-256 MAC
+  -> Digest SHA256State  -- ^ SHA-256 MAC
 hmacSha256 = hmac sha256 64
 
 -- | Compute an HMAC using SHA-384.
 hmacSha384
   :: ByteString  -- ^ secret key
   -> ByteString  -- ^ message
-  -> Digest      -- ^ SHA-384 MAC
+  -> Digest SHA512State     -- ^ SHA-384 MAC
 hmacSha384 = hmac sha384 128
 
 -- | Compute an HMAC using SHA-512.
 hmacSha512
   :: ByteString  -- ^ secret key
   -> ByteString  -- ^ message
-  -> Digest      -- ^ SHA-512 MAC
+  -> Digest SHA512State     -- ^ SHA-512 MAC
 hmacSha512 = hmac sha512 128
 
 -- --------------------------------------------------------------------------
 
-hmac :: (ByteString -> Digest) -> Int -> ByteString -> ByteString -> Digest
+hmac :: (ByteString -> Digest t) -> Int -> ByteString -> ByteString -> Digest t
 hmac f bl k m = f (BS.append opad (bytestringDigest (f (BS.append ipad m))))
  where
   opad = BS.map (xor ov) k'
@@ -1061,7 +1061,7 @@ hmac f bl k m = f (BS.append opad (bytestringDigest (f (BS.append ipad m))))
 
 -- | Convert a digest to a string.
 -- The digest is rendered as fixed with hexadecimal number.
-showDigest :: Digest -> String
+showDigest :: Digest t -> String
 showDigest (Digest bs) = showDigestBS bs
 
 -- |Prints out a bytestring in hexadecimal. Just for convenience.
@@ -1073,10 +1073,10 @@ showDigestBS bs = foldr paddedShowHex [] (BS.unpack bs)
                       : xs
 
 -- | Convert a digest to an Integer.
-integerDigest :: Digest -> Integer
+integerDigest :: Digest t -> Integer
 integerDigest (Digest bs) = BS.foldl' addShift 0 bs
  where addShift n y = (n `shiftL` 8) .|. fromIntegral y
 
 -- | Convert a digest to a ByteString.
-bytestringDigest :: Digest -> ByteString
+bytestringDigest :: Digest t -> ByteString
 bytestringDigest (Digest bs) = bs
