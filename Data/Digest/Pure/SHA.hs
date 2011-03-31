@@ -28,6 +28,7 @@ module Data.Digest.Pure.SHA
        )
  where
 
+import Data.Binary
 import Data.Binary.Get
 import Data.Binary.Put
 import Data.Bits
@@ -81,9 +82,10 @@ initialSHA512State = SHA512S 0x6a09e667f3bcc908 0xbb67ae8584caa73b
 
 -- --------------------------------------------------------------------------
 --
--- Synthesize of states to ByteStrings
+-- Synthesize of states to and from ByteStrings
 --
 -- --------------------------------------------------------------------------
+
 
 synthesizeSHA1 :: SHA1State -> Put
 synthesizeSHA1 (SHA1S a b c d e) = do
@@ -93,6 +95,15 @@ synthesizeSHA1 (SHA1S a b c d e) = do
   putWord32be d
   putWord32be e
 
+getSHA1 :: Get SHA1State
+getSHA1 = do
+  a <- getWord32be
+  b <- getWord32be
+  c <- getWord32be
+  d <- getWord32be
+  e <- getWord32be
+  return $ SHA1S a b c d e
+  
 synthesizeSHA224 :: SHA256State -> Put
 synthesizeSHA224 (SHA256S a b c d e f g _) = do
   putWord32be a
@@ -103,6 +114,17 @@ synthesizeSHA224 (SHA256S a b c d e f g _) = do
   putWord32be f
   putWord32be g
 
+getSHA224 :: Get SHA256State
+getSHA224 = do
+  a <- getWord32be
+  b <- getWord32be
+  c <- getWord32be
+  d <- getWord32be
+  e <- getWord32be
+  f <- getWord32be
+  g <- getWord32be
+  return $ SHA256S a b c d e f g 0
+  
 synthesizeSHA256 :: SHA256State -> Put
 synthesizeSHA256 (SHA256S a b c d e f g h) = do
   putWord32be a
@@ -114,6 +136,18 @@ synthesizeSHA256 (SHA256S a b c d e f g h) = do
   putWord32be g
   putWord32be h
 
+getSHA256 :: Get SHA256State
+getSHA256 = do
+  a <- getWord32be
+  b <- getWord32be
+  c <- getWord32be
+  d <- getWord32be
+  e <- getWord32be
+  f <- getWord32be
+  g <- getWord32be
+  h <- getWord32be  
+  return $ SHA256S a b c d e f g h
+
 synthesizeSHA384 :: SHA512State -> Put
 synthesizeSHA384 (SHA512S a b c d e f _ _) = do
   putWord64be a
@@ -123,6 +157,16 @@ synthesizeSHA384 (SHA512S a b c d e f _ _) = do
   putWord64be e
   putWord64be f
 
+getSHA384 :: Get SHA512State
+getSHA384 = do
+  a <- getWord64be
+  b <- getWord64be
+  c <- getWord64be
+  d <- getWord64be
+  e <- getWord64be
+  f <- getWord64be
+  return $ SHA512S a b c d e f 0 0
+  
 synthesizeSHA512 :: SHA512State -> Put
 synthesizeSHA512 (SHA512S a b c d e f g h) = do
   putWord64be a
@@ -133,6 +177,31 @@ synthesizeSHA512 (SHA512S a b c d e f g h) = do
   putWord64be f
   putWord64be g
   putWord64be h
+
+getSHA512 :: Get SHA512State
+getSHA512 = do
+  a <- getWord64be
+  b <- getWord64be
+  c <- getWord64be
+  d <- getWord64be
+  e <- getWord64be
+  f <- getWord64be
+  g <- getWord64be
+  h <- getWord64be
+  return $ SHA512S a b c d e f g h
+
+instance Binary SHA1State where
+  put = synthesizeSHA1
+  get = getSHA1
+  
+instance Binary SHA256State where
+  put = synthesizeSHA256
+  get = getSHA256
+
+instance Binary SHA512State where
+  put = synthesizeSHA512
+  get = getSHA512
+
 
 -- --------------------------------------------------------------------------
 --
