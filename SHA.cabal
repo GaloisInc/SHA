@@ -1,6 +1,6 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.5.0.0
+version:    1.5.0.1
 license:    BSD3
 license-file: LICENSE
 author:     Adam Wick <awick@galois.com>, Brian Lewis <brian@lorf.org>
@@ -76,4 +76,4 @@ Executable sha384
 
 source-repository head
   type:     git
-  location: git://code.galois.com/SHA.git
+  location: git://github.com/GaloisInc/SHA.git
