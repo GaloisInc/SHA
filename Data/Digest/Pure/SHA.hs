@@ -5,6 +5,7 @@
 module Data.Digest.Pure.SHA
        ( -- * 'Digest' and related functions
          Digest
+       , SHA1State, SHA256State, SHA512State
        , showDigest
        , integerDigest
        , bytestringDigest
