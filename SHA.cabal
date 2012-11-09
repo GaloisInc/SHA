@@ -1,14 +1,15 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.5.1
+version:    1.6.0
 license:    BSD3
 license-file: LICENSE
 author:     Adam Wick <awick@galois.com>, Brian Lewis <brian@lorf.org>
-maintainer: Adam Wick <awick@galois.com>
+maintainer: Adam Wick <awick@galois.com>,
+            Raphael Javaux <raphaeljavaux@gmail.com>
 stability:  stable
 build-type: Simple
 cabal-version: >= 1.6
-tested-with: GHC ==6.8.0
+tested-with: GHC == 7.6.1
 synopsis: Implementations of the SHA suite of message digest functions
 description: This library implements the SHA suite of message digest functions,
              according to NIST FIPS 180-2 (with the SHA-224 addendum), as well
@@ -18,61 +19,70 @@ description: This library implements the SHA suite of message digest functions,
              these do not presently reach the speed of well-tuned libraries, 
              like OpenSSL.
 
-Flag Test
- Description: Build the SHA test suite.
- Default: False
+Flag test
+  Description: Build the SHA test suite.
+  Default: False
 
 Flag exe
- Description: Build a SHA2-384 executable similar to 'md5sum'
- Default: False
+  Description: Build a sha1 and a sha384 executable similar to 'md5sum'.
+  Default: False
 
 Library
- build-depends: base >= 4 && < 6, bytestring, binary, array
- exposed-modules: Data.Digest.Pure.SHA
- GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
- extensions: CPP, BangPatterns
- if impl(ghc >= 6.12)
-   Ghc-Options: -fregs-graph
+  build-depends: base >= 4 && < 6, bytestring, binary, array
+  exposed-modules: Data.Digest.Pure.SHA
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
+  extensions: CPP, BangPatterns
+  if impl(ghc >= 6.12)
+    Ghc-Options: -fregs-graph
 
 Executable test_sha
-  build-depends: base >= 4 && < 6, bytestring, binary, array
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans -funbox-strict-fields -fwarn-tabs
-  cpp-options: -DSHA_TEST
+  build-depends: base >= 4 && < 6, bytestring, binary, array,
+                 QuickCheck == 2.*, test-framework >= 0.3,
+                 test-framework-quickcheck2 >= 0.2
   Main-Is: Test.hs
   Other-Modules: Data.Digest.Pure.SHA
+
   extensions: CPP, BangPatterns, MultiParamTypeClasses
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
+  cpp-options: -DSHA_TEST
+
+  if impl(ghc >= 6.12)
+    Ghc-Options: -fregs-graph
+
   if !flag(test)
     buildable: False
-  else
-    build-depends: QuickCheck == 2.*, test-framework == 0.3.*, test-framework-quickcheck2 == 0.2.*
-  if impl(ghc >= 6.12)
-    Ghc-Options: -fregs-graph
 
 Executable sha1
-  build-depends: base >= 4 && < 6, bytestring, binary, array
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
+  build-depends: base >= 4 && < 6, bytestring, binary, array, directory
   Main-Is: Main.hs
+
   extensions: CPP, BangPatterns
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
   cpp-options: -DALGORITHM=sha1
-  if !flag(exe)
-    buildable: False
-  else
-    build-depends: directory
+
   if impl(ghc >= 6.12)
     Ghc-Options: -fregs-graph
 
-Executable sha384
-  build-depends: base >= 4 && < 6, bytestring, binary, array
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -funbox-strict-fields -fwarn-tabs
-  Main-Is: Main.hs
-  extensions: CPP, BangPatterns
-  cpp-options: -DALGORITHM=sha384
   if !flag(exe)
     buildable: False
-  else
-    build-depends: directory
+
+Executable sha384
+  build-depends: base >= 4 && < 6, bytestring, binary, array, directory
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
+  Main-Is: Main.hs
+
+  extensions: CPP, BangPatterns
+  cpp-options: -DALGORITHM=sha384
+
   if impl(ghc >= 6.12)
     Ghc-Options: -fregs-graph
+
+  if !flag(exe)
+    buildable: False
 
 source-repository head
   type:     git
