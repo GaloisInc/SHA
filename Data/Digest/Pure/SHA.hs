@@ -22,19 +22,20 @@ module Data.Digest.Pure.SHA
        , hmacSha384
        , hmacSha512
 #ifdef SHA_TEST
-       , toBigEndianBS, fromBigEndianBS
+       , toBigEndianSBS, fromBigEndianSBS
        , calc_k
        , padSHA1, padSHA512
 #endif
        )
  where
-
+ 
 import Data.Binary
 import Data.Binary.Get
 import Data.Binary.Put
 import Data.Bits
 import Data.ByteString.Lazy(ByteString)
 import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString as SBS
 import Data.Char (intToDigit)
 
 -- | An abstract datatype for digests.
@@ -44,15 +45,15 @@ instance Show (Digest t) where
   show = showDigest
 
 instance Binary (Digest SHA1State) where
-  get = fmap Digest $ getLazyByteString 20
+  get = Digest `fmap` getLazyByteString 20
   put (Digest bs) = put bs
 
 instance Binary (Digest SHA256State) where
-  get = fmap Digest $ getLazyByteString 32
+  get = Digest `fmap` getLazyByteString 32
   put (Digest bs) = put bs
 
 instance Binary (Digest SHA512State) where
-  get = fmap Digest $ getLazyByteString 64
+  get = Digest `fmap` getLazyByteString 64
   put (Digest bs) = put bs
 
 -- --------------------------------------------------------------------------
@@ -114,8 +115,8 @@ getSHA1 = do
   c <- getWord32be
   d <- getWord32be
   e <- getWord32be
-  return $ SHA1S a b c d e
-  
+  return $! SHA1S a b c d e
+
 synthesizeSHA224 :: SHA256State -> Put
 synthesizeSHA224 (SHA256S a b c d e f g _) = do
   putWord32be a
@@ -125,7 +126,7 @@ synthesizeSHA224 (SHA256S a b c d e f g _) = do
   putWord32be e
   putWord32be f
   putWord32be g
-  
+
 synthesizeSHA256 :: SHA256State -> Put
 synthesizeSHA256 (SHA256S a b c d e f g h) = do
   putWord32be a
@@ -146,8 +147,8 @@ getSHA256 = do
   e <- getWord32be
   f <- getWord32be
   g <- getWord32be
-  h <- getWord32be  
-  return $ SHA256S a b c d e f g h
+  h <- getWord32be
+  return $! SHA256S a b c d e f g h
 
 synthesizeSHA384 :: SHA512State -> Put
 synthesizeSHA384 (SHA512S a b c d e f _ _) = do
@@ -157,7 +158,7 @@ synthesizeSHA384 (SHA512S a b c d e f _ _) = do
   putWord64be d
   putWord64be e
   putWord64be f
-  
+
 synthesizeSHA512 :: SHA512State -> Put
 synthesizeSHA512 (SHA512S a b c d e f g h) = do
   putWord64be a
@@ -179,12 +180,12 @@ getSHA512 = do
   f <- getWord64be
   g <- getWord64be
   h <- getWord64be
-  return $ SHA512S a b c d e f g h
+  return $! SHA512S a b c d e f g h
 
 instance Binary SHA1State where
   put = synthesizeSHA1
   get = getSHA1
-  
+
 instance Binary SHA256State where
   put = synthesizeSHA256
   get = getSHA256
@@ -207,15 +208,25 @@ padSHA512 :: ByteString -> ByteString
 padSHA512 = generic_pad 896 1024 128
 
 generic_pad :: Word64 -> Word64 -> Int -> ByteString -> ByteString
-generic_pad a b lSize bs = BS.concat [bs, pad_bytes, pad_length]
+generic_pad a b lSize bs =
+  BS.fromChunks $! go 0 chunks
  where
-  l = fromIntegral $ BS.length bs * 8
-  k = calc_k a b l
-  -- INVARIANT: k is necessarily > 0, and (k + 1) is a multiple of 8.
-  k_bytes    = (k + 1) `div` 8
-  pad_bytes  = BS.singleton 0x80 `BS.append` BS.replicate nZeroBytes 0
-  nZeroBytes = fromIntegral $ k_bytes - 1
-  pad_length = toBigEndianBS lSize l
+  chunks = BS.toChunks bs
+
+  -- Generates the padded ByteString at the same time it computes the length
+  -- of input. If the length is computed before the computation of the hash, it
+  -- will break the lazy evaluation of the input and no longer run in constant
+  -- memory space.
+  go !len [] =
+    let lenBits = fromIntegral $ len * 8
+        k = calc_k a b lenBits
+        -- INVARIANT: k is necessarily > 0, and (k + 1) is a multiple of 8.
+        kBytes = (k + 1) `div` 8
+        nZeroBytes = fromIntegral $! kBytes - 1
+        padLength = toBigEndianSBS lSize lenBits
+    in [SBS.singleton 0x80, SBS.replicate nZeroBytes 0, padLength]
+  go !len (c:cs) =
+      c : go (len + SBS.length c) cs
 
 -- Given a, b, and l, calculate the smallest k such that (l + 1 + k) mod b = a.
 calc_k :: Word64 -> Word64 -> Word64 -> Word64
@@ -226,15 +237,15 @@ calc_k a b l =
  where
   r = toInteger a - toInteger l `mod` toInteger b - 1
 
-toBigEndianBS :: (Integral a, Bits a) => Int -> a -> ByteString
-toBigEndianBS s val = BS.pack $ map getBits [s - 8, s - 16 .. 0]
+toBigEndianSBS :: (Integral a, Bits a) => Int -> a -> SBS.ByteString
+toBigEndianSBS s val = SBS.pack $ map getBits [s - 8, s - 16 .. 0]
  where
    getBits x = fromIntegral $ (val `shiftR` x) .&. 0xFF
 
 #ifdef SHA_TEST
-fromBigEndianBS :: (Integral a, Bits a) => ByteString -> a
-fromBigEndianBS =
-  BS.foldl (\ acc x -> (acc `shiftL` 8) + fromIntegral x) 0
+fromBigEndianSBS :: (Integral a, Bits a) => SBS.ByteString -> a
+fromBigEndianSBS =
+  SBS.foldl (\ acc x -> (acc `shiftL` 8) + fromIntegral x) 0
 #endif
 
 -- --------------------------------------------------------------------------
@@ -261,28 +272,28 @@ maj x y z = (x .&. (y .|. z)) .|. (y .&. z)
 --   which saves us one operation.
 
 bsig256_0 :: Word32 -> Word32
-bsig256_0 x = rotate x (-2) `xor` rotate x (-13) `xor` rotate x (-22)
+bsig256_0 x = rotateR x 2 `xor` rotateR x 13 `xor` rotateR x 22
 
 bsig256_1 :: Word32 -> Word32
-bsig256_1 x = rotate x (-6) `xor` rotate x (-11) `xor` rotate x (-25)
+bsig256_1 x = rotateR x 6 `xor` rotateR x 11 `xor` rotateR x 25
 
 lsig256_0 :: Word32 -> Word32
-lsig256_0 x = rotate x (-7) `xor` rotate x (-18) `xor` shiftR x 3
+lsig256_0 x = rotateR x 7 `xor` rotateR x 18 `xor` shiftR x 3
 
 lsig256_1 :: Word32 -> Word32
-lsig256_1 x = rotate x (-17) `xor` rotate x (-19) `xor` shiftR x 10
+lsig256_1 x = rotateR x 17 `xor` rotateR x 19 `xor` shiftR x 10
 
 bsig512_0 :: Word64 -> Word64
-bsig512_0 x = rotate x (-28) `xor` rotate x (-34) `xor` rotate x (-39)
+bsig512_0 x = rotateR x 28 `xor` rotateR x 34 `xor` rotateR x 39
 
 bsig512_1 :: Word64 -> Word64
-bsig512_1 x = rotate x (-14) `xor` rotate x (-18) `xor` rotate x (-41)
+bsig512_1 x = rotateR x 14 `xor` rotateR x 18 `xor` rotateR x 41
 
 lsig512_0 :: Word64 -> Word64
-lsig512_0 x = rotate x (-1) `xor` rotate x (-8) `xor` shiftR x 7
+lsig512_0 x = rotateR x 1 `xor` rotateR x 8 `xor` shiftR x 7
 
 lsig512_1 :: Word64 -> Word64
-lsig512_1 x = rotate x (-19) `xor` rotate x (-61) `xor` shiftR x 6
+lsig512_1 x = rotateR x 19 `xor` rotateR x 61 `xor` shiftR x 6
 
 -- --------------------------------------------------------------------------
 --
@@ -325,78 +336,78 @@ getSHA1Sched = do
   w13 <- getWord32be
   w14 <- getWord32be
   w15 <- getWord32be
-  let w16 = rotate (w13 `xor` w08 `xor` w02 `xor` w00) 1
-      w17 = rotate (w14 `xor` w09 `xor` w03 `xor` w01) 1
-      w18 = rotate (w15 `xor` w10 `xor` w04 `xor` w02) 1
-      w19 = rotate (w16 `xor` w11 `xor` w05 `xor` w03) 1
-      w20 = rotate (w17 `xor` w12 `xor` w06 `xor` w04) 1
-      w21 = rotate (w18 `xor` w13 `xor` w07 `xor` w05) 1
-      w22 = rotate (w19 `xor` w14 `xor` w08 `xor` w06) 1
-      w23 = rotate (w20 `xor` w15 `xor` w09 `xor` w07) 1
-      w24 = rotate (w21 `xor` w16 `xor` w10 `xor` w08) 1
-      w25 = rotate (w22 `xor` w17 `xor` w11 `xor` w09) 1
-      w26 = rotate (w23 `xor` w18 `xor` w12 `xor` w10) 1
-      w27 = rotate (w24 `xor` w19 `xor` w13 `xor` w11) 1
-      w28 = rotate (w25 `xor` w20 `xor` w14 `xor` w12) 1
-      w29 = rotate (w26 `xor` w21 `xor` w15 `xor` w13) 1
-      w30 = rotate (w27 `xor` w22 `xor` w16 `xor` w14) 1
-      w31 = rotate (w28 `xor` w23 `xor` w17 `xor` w15) 1
-      w32 = rotate (w29 `xor` w24 `xor` w18 `xor` w16) 1
-      w33 = rotate (w30 `xor` w25 `xor` w19 `xor` w17) 1
-      w34 = rotate (w31 `xor` w26 `xor` w20 `xor` w18) 1
-      w35 = rotate (w32 `xor` w27 `xor` w21 `xor` w19) 1
-      w36 = rotate (w33 `xor` w28 `xor` w22 `xor` w20) 1
-      w37 = rotate (w34 `xor` w29 `xor` w23 `xor` w21) 1
-      w38 = rotate (w35 `xor` w30 `xor` w24 `xor` w22) 1
-      w39 = rotate (w36 `xor` w31 `xor` w25 `xor` w23) 1
-      w40 = rotate (w37 `xor` w32 `xor` w26 `xor` w24) 1
-      w41 = rotate (w38 `xor` w33 `xor` w27 `xor` w25) 1
-      w42 = rotate (w39 `xor` w34 `xor` w28 `xor` w26) 1
-      w43 = rotate (w40 `xor` w35 `xor` w29 `xor` w27) 1
-      w44 = rotate (w41 `xor` w36 `xor` w30 `xor` w28) 1
-      w45 = rotate (w42 `xor` w37 `xor` w31 `xor` w29) 1
-      w46 = rotate (w43 `xor` w38 `xor` w32 `xor` w30) 1
-      w47 = rotate (w44 `xor` w39 `xor` w33 `xor` w31) 1
-      w48 = rotate (w45 `xor` w40 `xor` w34 `xor` w32) 1
-      w49 = rotate (w46 `xor` w41 `xor` w35 `xor` w33) 1
-      w50 = rotate (w47 `xor` w42 `xor` w36 `xor` w34) 1
-      w51 = rotate (w48 `xor` w43 `xor` w37 `xor` w35) 1
-      w52 = rotate (w49 `xor` w44 `xor` w38 `xor` w36) 1
-      w53 = rotate (w50 `xor` w45 `xor` w39 `xor` w37) 1
-      w54 = rotate (w51 `xor` w46 `xor` w40 `xor` w38) 1
-      w55 = rotate (w52 `xor` w47 `xor` w41 `xor` w39) 1
-      w56 = rotate (w53 `xor` w48 `xor` w42 `xor` w40) 1
-      w57 = rotate (w54 `xor` w49 `xor` w43 `xor` w41) 1
-      w58 = rotate (w55 `xor` w50 `xor` w44 `xor` w42) 1
-      w59 = rotate (w56 `xor` w51 `xor` w45 `xor` w43) 1
-      w60 = rotate (w57 `xor` w52 `xor` w46 `xor` w44) 1
-      w61 = rotate (w58 `xor` w53 `xor` w47 `xor` w45) 1
-      w62 = rotate (w59 `xor` w54 `xor` w48 `xor` w46) 1
-      w63 = rotate (w60 `xor` w55 `xor` w49 `xor` w47) 1
-      w64 = rotate (w61 `xor` w56 `xor` w50 `xor` w48) 1
-      w65 = rotate (w62 `xor` w57 `xor` w51 `xor` w49) 1
-      w66 = rotate (w63 `xor` w58 `xor` w52 `xor` w50) 1
-      w67 = rotate (w64 `xor` w59 `xor` w53 `xor` w51) 1
-      w68 = rotate (w65 `xor` w60 `xor` w54 `xor` w52) 1
-      w69 = rotate (w66 `xor` w61 `xor` w55 `xor` w53) 1
-      w70 = rotate (w67 `xor` w62 `xor` w56 `xor` w54) 1
-      w71 = rotate (w68 `xor` w63 `xor` w57 `xor` w55) 1
-      w72 = rotate (w69 `xor` w64 `xor` w58 `xor` w56) 1
-      w73 = rotate (w70 `xor` w65 `xor` w59 `xor` w57) 1
-      w74 = rotate (w71 `xor` w66 `xor` w60 `xor` w58) 1
-      w75 = rotate (w72 `xor` w67 `xor` w61 `xor` w59) 1
-      w76 = rotate (w73 `xor` w68 `xor` w62 `xor` w60) 1
-      w77 = rotate (w74 `xor` w69 `xor` w63 `xor` w61) 1
-      w78 = rotate (w75 `xor` w70 `xor` w64 `xor` w62) 1
-      w79 = rotate (w76 `xor` w71 `xor` w65 `xor` w63) 1
-  return $ SHA1Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09
-                     w10 w11 w12 w13 w14 w15 w16 w17 w18 w19
-                     w20 w21 w22 w23 w24 w25 w26 w27 w28 w29
-                     w30 w31 w32 w33 w34 w35 w36 w37 w38 w39
-                     w40 w41 w42 w43 w44 w45 w46 w47 w48 w49
-                     w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
-                     w60 w61 w62 w63 w64 w65 w66 w67 w68 w69
-                     w70 w71 w72 w73 w74 w75 w76 w77 w78 w79
+  let w16 = rotateL (w13 `xor` w08 `xor` w02 `xor` w00) 1
+      w17 = rotateL (w14 `xor` w09 `xor` w03 `xor` w01) 1
+      w18 = rotateL (w15 `xor` w10 `xor` w04 `xor` w02) 1
+      w19 = rotateL (w16 `xor` w11 `xor` w05 `xor` w03) 1
+      w20 = rotateL (w17 `xor` w12 `xor` w06 `xor` w04) 1
+      w21 = rotateL (w18 `xor` w13 `xor` w07 `xor` w05) 1
+      w22 = rotateL (w19 `xor` w14 `xor` w08 `xor` w06) 1
+      w23 = rotateL (w20 `xor` w15 `xor` w09 `xor` w07) 1
+      w24 = rotateL (w21 `xor` w16 `xor` w10 `xor` w08) 1
+      w25 = rotateL (w22 `xor` w17 `xor` w11 `xor` w09) 1
+      w26 = rotateL (w23 `xor` w18 `xor` w12 `xor` w10) 1
+      w27 = rotateL (w24 `xor` w19 `xor` w13 `xor` w11) 1
+      w28 = rotateL (w25 `xor` w20 `xor` w14 `xor` w12) 1
+      w29 = rotateL (w26 `xor` w21 `xor` w15 `xor` w13) 1
+      w30 = rotateL (w27 `xor` w22 `xor` w16 `xor` w14) 1
+      w31 = rotateL (w28 `xor` w23 `xor` w17 `xor` w15) 1
+      w32 = rotateL (w29 `xor` w24 `xor` w18 `xor` w16) 1
+      w33 = rotateL (w30 `xor` w25 `xor` w19 `xor` w17) 1
+      w34 = rotateL (w31 `xor` w26 `xor` w20 `xor` w18) 1
+      w35 = rotateL (w32 `xor` w27 `xor` w21 `xor` w19) 1
+      w36 = rotateL (w33 `xor` w28 `xor` w22 `xor` w20) 1
+      w37 = rotateL (w34 `xor` w29 `xor` w23 `xor` w21) 1
+      w38 = rotateL (w35 `xor` w30 `xor` w24 `xor` w22) 1
+      w39 = rotateL (w36 `xor` w31 `xor` w25 `xor` w23) 1
+      w40 = rotateL (w37 `xor` w32 `xor` w26 `xor` w24) 1
+      w41 = rotateL (w38 `xor` w33 `xor` w27 `xor` w25) 1
+      w42 = rotateL (w39 `xor` w34 `xor` w28 `xor` w26) 1
+      w43 = rotateL (w40 `xor` w35 `xor` w29 `xor` w27) 1
+      w44 = rotateL (w41 `xor` w36 `xor` w30 `xor` w28) 1
+      w45 = rotateL (w42 `xor` w37 `xor` w31 `xor` w29) 1
+      w46 = rotateL (w43 `xor` w38 `xor` w32 `xor` w30) 1
+      w47 = rotateL (w44 `xor` w39 `xor` w33 `xor` w31) 1
+      w48 = rotateL (w45 `xor` w40 `xor` w34 `xor` w32) 1
+      w49 = rotateL (w46 `xor` w41 `xor` w35 `xor` w33) 1
+      w50 = rotateL (w47 `xor` w42 `xor` w36 `xor` w34) 1
+      w51 = rotateL (w48 `xor` w43 `xor` w37 `xor` w35) 1
+      w52 = rotateL (w49 `xor` w44 `xor` w38 `xor` w36) 1
+      w53 = rotateL (w50 `xor` w45 `xor` w39 `xor` w37) 1
+      w54 = rotateL (w51 `xor` w46 `xor` w40 `xor` w38) 1
+      w55 = rotateL (w52 `xor` w47 `xor` w41 `xor` w39) 1
+      w56 = rotateL (w53 `xor` w48 `xor` w42 `xor` w40) 1
+      w57 = rotateL (w54 `xor` w49 `xor` w43 `xor` w41) 1
+      w58 = rotateL (w55 `xor` w50 `xor` w44 `xor` w42) 1
+      w59 = rotateL (w56 `xor` w51 `xor` w45 `xor` w43) 1
+      w60 = rotateL (w57 `xor` w52 `xor` w46 `xor` w44) 1
+      w61 = rotateL (w58 `xor` w53 `xor` w47 `xor` w45) 1
+      w62 = rotateL (w59 `xor` w54 `xor` w48 `xor` w46) 1
+      w63 = rotateL (w60 `xor` w55 `xor` w49 `xor` w47) 1
+      w64 = rotateL (w61 `xor` w56 `xor` w50 `xor` w48) 1
+      w65 = rotateL (w62 `xor` w57 `xor` w51 `xor` w49) 1
+      w66 = rotateL (w63 `xor` w58 `xor` w52 `xor` w50) 1
+      w67 = rotateL (w64 `xor` w59 `xor` w53 `xor` w51) 1
+      w68 = rotateL (w65 `xor` w60 `xor` w54 `xor` w52) 1
+      w69 = rotateL (w66 `xor` w61 `xor` w55 `xor` w53) 1
+      w70 = rotateL (w67 `xor` w62 `xor` w56 `xor` w54) 1
+      w71 = rotateL (w68 `xor` w63 `xor` w57 `xor` w55) 1
+      w72 = rotateL (w69 `xor` w64 `xor` w58 `xor` w56) 1
+      w73 = rotateL (w70 `xor` w65 `xor` w59 `xor` w57) 1
+      w74 = rotateL (w71 `xor` w66 `xor` w60 `xor` w58) 1
+      w75 = rotateL (w72 `xor` w67 `xor` w61 `xor` w59) 1
+      w76 = rotateL (w73 `xor` w68 `xor` w62 `xor` w60) 1
+      w77 = rotateL (w74 `xor` w69 `xor` w63 `xor` w61) 1
+      w78 = rotateL (w75 `xor` w70 `xor` w64 `xor` w62) 1
+      w79 = rotateL (w76 `xor` w71 `xor` w65 `xor` w63) 1
+  return $! SHA1Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09
+                      w10 w11 w12 w13 w14 w15 w16 w17 w18 w19
+                      w20 w21 w22 w23 w24 w25 w26 w27 w28 w29
+                      w30 w31 w32 w33 w34 w35 w36 w37 w38 w39
+                      w40 w41 w42 w43 w44 w45 w46 w47 w48 w49
+                      w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
+                      w60 w61 w62 w63 w64 w65 w66 w67 w68 w69
+                      w70 w71 w72 w73 w74 w75 w76 w77 w78 w79
 
 data SHA256Sched = SHA256Sched !Word32 !Word32 !Word32 !Word32 !Word32 -- 00-04
                                !Word32 !Word32 !Word32 !Word32 !Word32 -- 05-09
@@ -478,13 +489,13 @@ getSHA256Sched = do
       w61 = lsig256_1 w59 + w54 + lsig256_0 w46 + w45
       w62 = lsig256_1 w60 + w55 + lsig256_0 w47 + w46
       w63 = lsig256_1 w61 + w56 + lsig256_0 w48 + w47
-  return $ SHA256Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09
-                       w10 w11 w12 w13 w14 w15 w16 w17 w18 w19
-                       w20 w21 w22 w23 w24 w25 w26 w27 w28 w29
-                       w30 w31 w32 w33 w34 w35 w36 w37 w38 w39
-                       w40 w41 w42 w43 w44 w45 w46 w47 w48 w49
-                       w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
-                       w60 w61 w62 w63
+  return $! SHA256Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09
+                        w10 w11 w12 w13 w14 w15 w16 w17 w18 w19
+                        w20 w21 w22 w23 w24 w25 w26 w27 w28 w29
+                        w30 w31 w32 w33 w34 w35 w36 w37 w38 w39
+                        w40 w41 w42 w43 w44 w45 w46 w47 w48 w49
+                        w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
+                        w60 w61 w62 w63
 
 data SHA512Sched = SHA512Sched !Word64 !Word64 !Word64 !Word64 !Word64 --  0- 4
                                !Word64 !Word64 !Word64 !Word64 !Word64 --  5- 9
@@ -585,14 +596,14 @@ getSHA512Sched = do
       w77 = lsig512_1 w75 + w70 + lsig512_0 w62 + w61
       w78 = lsig512_1 w76 + w71 + lsig512_0 w63 + w62
       w79 = lsig512_1 w77 + w72 + lsig512_0 w64 + w63
-  return $ SHA512Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09
-                       w10 w11 w12 w13 w14 w15 w16 w17 w18 w19
-                       w20 w21 w22 w23 w24 w25 w26 w27 w28 w29
-                       w30 w31 w32 w33 w34 w35 w36 w37 w38 w39
-                       w40 w41 w42 w43 w44 w45 w46 w47 w48 w49
-                       w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
-                       w60 w61 w62 w63 w64 w65 w66 w67 w68 w69
-                       w70 w71 w72 w73 w74 w75 w76 w77 w78 w79
+  return $! SHA512Sched w00 w01 w02 w03 w04 w05 w06 w07 w08 w09
+                        w10 w11 w12 w13 w14 w15 w16 w17 w18 w19
+                        w20 w21 w22 w23 w24 w25 w26 w27 w28 w29
+                        w30 w31 w32 w33 w34 w35 w36 w37 w38 w39
+                        w40 w41 w42 w43 w44 w45 w46 w47 w48 w49
+                        w50 w51 w52 w53 w54 w55 w56 w57 w58 w59
+                        w60 w61 w62 w63 w64 w65 w66 w67 w68 w69
+                        w70 w71 w72 w73 w74 w75 w76 w77 w78 w79
 
 -- --------------------------------------------------------------------------
 --
@@ -691,32 +702,32 @@ processSHA1Block s00@(SHA1S a00 b00 c00 d00 e00) = do
       s79 = step1_par s78 0xca62c1d6 w78
       s80 = step1_par s79 0xca62c1d6 w79
       SHA1S a80 b80 c80 d80 e80 = s80
-  return $ SHA1S (a00 + a80) (b00 + b80) (c00 + c80) (d00 + d80) (e00 + e80)
+  return $! SHA1S (a00 + a80) (b00 + b80) (c00 + c80) (d00 + d80) (e00 + e80)
 
 {-# INLINE step1_ch #-}
 step1_ch :: SHA1State -> Word32 -> Word32 -> SHA1State
 step1_ch !(SHA1S a b c d e) k w = SHA1S a' b' c' d' e'
- where a' = rotate a 5 + ((b .&. c) `xor` (complement b .&. d)) + e + k + w
+ where a' = rotateL a 5 + ((b .&. c) `xor` (complement b .&. d)) + e + k + w
        b' = a
-       c' = rotate b 30
+       c' = rotateL b 30
        d' = c
        e' = d
 
 {-# INLINE step1_par #-}
 step1_par :: SHA1State -> Word32 -> Word32 -> SHA1State
 step1_par !(SHA1S a b c d e) k w = SHA1S a' b' c' d' e'
- where a' = rotate a 5 + (b `xor` c `xor` d) + e + k + w
+ where a' = rotateL a 5 + (b `xor` c `xor` d) + e + k + w
        b' = a
-       c' = rotate b 30
+       c' = rotateL b 30
        d' = c
        e' = d
 
 {-# INLINE step1_maj #-}
 step1_maj :: SHA1State -> Word32 -> Word32 -> SHA1State
 step1_maj !(SHA1S a b c d e) k w = SHA1S a' b' c' d' e'
- where a' = rotate a 5 + ((b .&. (c .|. d)) .|. (c .&. d)) + e + k + w
+ where a' = rotateL a 5 + ((b .&. (c .|. d)) .|. (c .&. d)) + e + k + w
        b' = a
-       c' = rotate b 30
+       c' = rotateL b 30
        d' = c
        e' = d
 -- See the note on maj, above
@@ -795,8 +806,8 @@ processSHA256Block !s00@(SHA256S a00 b00 c00 d00 e00 f00 g00 h00) = do
       s63 = step256 s62 0xbef9a3f7 w62
       s64 = step256 s63 0xc67178f2 w63
       SHA256S a64 b64 c64 d64 e64 f64 g64 h64 = s64
-  return $ SHA256S (a00 + a64) (b00 + b64) (c00 + c64) (d00 + d64)
-                   (e00 + e64) (f00 + f64) (g00 + g64) (h00 + h64)
+  return $! SHA256S (a00 + a64) (b00 + b64) (c00 + c64) (d00 + d64)
+                    (e00 + e64) (f00 + f64) (g00 + g64) (h00 + h64)
 
 {-# INLINE step256 #-}
 step256 :: SHA256State -> Word32 -> Word32 -> SHA256State
@@ -904,8 +915,8 @@ processSHA512Block !s00@(SHA512S a00 b00 c00 d00 e00 f00 g00 h00) = do
       s79 = step512 s78 0x5fcb6fab3ad6faec w78
       s80 = step512 s79 0x6c44198c4a475817 w79
       SHA512S a80 b80 c80 d80 e80 f80 g80 h80 = s80
-  return $ SHA512S (a00 + a80) (b00 + b80) (c00 + c80) (d00 + d80)
-                   (e00 + e80) (f00 + f80) (g00 + g80) (h00 + h80)
+  return $! SHA512S (a00 + a80) (b00 + b80) (c00 + c80) (d00 + d80)
+                    (e00 + e80) (f00 + f80) (g00 + g80) (h00 + h80)
 
 {-# INLINE step512 #-}
 step512 :: SHA512State -> Word64 -> Word64 -> SHA512State
@@ -945,7 +956,7 @@ sha1 bs_in = Digest bs_out
  where
   bs_pad = padSHA1 bs_in
   fstate = runSHA initialSHA1State processSHA1Block bs_pad
-  bs_out = runPut $ synthesizeSHA1 fstate
+  bs_out = runPut $! synthesizeSHA1 fstate
 
 -- |Compute the SHA-224 hash of the given ByteString. Note that SHA-224 and
 -- SHA-384 differ only slightly from SHA-256 and SHA-512, and use truncated
@@ -956,7 +967,7 @@ sha224 bs_in = Digest bs_out
  where
   bs_pad = padSHA1 bs_in
   fstate = runSHA initialSHA224State processSHA256Block bs_pad
-  bs_out = runPut $ synthesizeSHA224 fstate
+  bs_out = runPut $! synthesizeSHA224 fstate
 
 -- |Compute the SHA-256 hash of the given ByteString. The output is guaranteed
 -- to be exactly 256 bits, or 32 bytes, long. If your security requirements
@@ -967,7 +978,7 @@ sha256 bs_in = Digest bs_out
  where
   bs_pad = padSHA1 bs_in
   fstate = runSHA initialSHA256State processSHA256Block bs_pad
-  bs_out = runPut $ synthesizeSHA256 fstate
+  bs_out = runPut $! synthesizeSHA256 fstate
 
 -- |Compute the SHA-384 hash of the given ByteString. Yup, you guessed it,
 -- the output will be exactly 384 bits, or 48 bytes, long.
@@ -976,7 +987,7 @@ sha384 bs_in = Digest bs_out
  where
   bs_pad = padSHA512 bs_in
   fstate = runSHA initialSHA384State processSHA512Block bs_pad
-  bs_out = runPut $ synthesizeSHA384 fstate
+  bs_out = runPut $! synthesizeSHA384 fstate
 
 -- |For those for whom only the biggest hashes will do, this computes the
 -- SHA-512 hash of the given ByteString. The output will be 64 bytes, or
@@ -986,7 +997,7 @@ sha512 bs_in = Digest bs_out
  where
   bs_pad = padSHA512 bs_in
   fstate = runSHA initialSHA512State processSHA512Block bs_pad
-  bs_out = runPut $ synthesizeSHA512 fstate
+  bs_out = runPut $! synthesizeSHA512 fstate
 
 -- --------------------------------------------------------------------------
 
