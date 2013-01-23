@@ -27,6 +27,10 @@ Flag exe
   Description: Build a sha1 and a sha384 executable similar to 'md5sum'.
   Default: False
 
+Flag base_tf_bug
+  Description: This is a low version of base that'll hit a test-framwework bug.
+  Default: False
+
 Library
   build-depends: base >= 4 && < 6, bytestring, binary, array
   exposed-modules: Data.Digest.Pure.SHA
@@ -38,9 +42,13 @@ Library
 
 Executable test_sha
   if flag(test)
-      build-depends: base >= 4 && < 6, bytestring, binary, array,
-                     QuickCheck == 2.*, test-framework >= 0.3,
-                     test-framework-quickcheck2 >= 0.2
+      build-depends: bytestring, binary, array, QuickCheck == 2.*
+     if flag(base_tf_bug)
+       build-depends: base >= 4 && < 4.3, test-framework < 0.8,
+                      test-framework-quickcheck2 >= 0.2
+     else
+       build-depends: base > 4.3, test-framework >= 0.3,
+                      test-framework-quickcheck2 >= 0.2
   else
     buildable: False
   Main-Is: Test.hs
