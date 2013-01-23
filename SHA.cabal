@@ -45,7 +45,7 @@ Executable test_sha
       build-depends: bytestring, binary, array, QuickCheck == 2.*
      if flag(base_tf_bug)
        build-depends: base >= 4 && < 4.3, test-framework < 0.8,
-                      test-framework-quickcheck2 >= 0.2 && < 0.3
+                      test-framework-quickcheck2 >= 0.2 && < 0.2.12
      else
        build-depends: base > 4.3, test-framework >= 0.3,
                       test-framework-quickcheck2 >= 0.2
@@ -54,7 +54,7 @@ Executable test_sha
   Main-Is: Test.hs
   Other-Modules: Data.Digest.Pure.SHA
 
-  extensions: CPP, BangPatterns, MultiParamTypeClasses
+  extensions: CPP, BangPatterns, MultiParamTypeClasses, DeriveDataTypeable
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
                -funbox-strict-fields -fwarn-tabs
   cpp-options: -DSHA_TEST
