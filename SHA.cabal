@@ -1,6 +1,6 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.6.1
+version:    1.6.2
 license:    BSD3
 license-file: LICENSE
 author:     Adam Wick <awick@galois.com>, Brian Lewis <brian@lorf.org>
@@ -32,9 +32,12 @@ Flag base_tf_bug
   Default: False
 
 Library
-  build-depends: base >= 4 && < 6, bytestring, binary, array
+  build-depends: array > 0 && < 10000,
+                 base >= 4 && < 6,
+                 binary > 0.0 && < 10000,
+                 bytestring > 0.8 && < 10000
   exposed-modules: Data.Digest.Pure.SHA
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+  GHC-Options: -Wall -fno-ignore-asserts -fno-warn-orphans
                -funbox-strict-fields -fwarn-tabs
   extensions: CPP, BangPatterns
   if impl(ghc >= 6.12)
@@ -42,13 +45,13 @@ Library
 
 Executable test_sha
   if flag(test)
-      build-depends: bytestring, binary, array, QuickCheck == 2.*
-     if flag(base_tf_bug)
-       build-depends: base >= 4 && < 4.3, test-framework < 0.8,
-                      test-framework-quickcheck2 >= 0.2 && < 0.2.12
-     else
-       build-depends: base > 4.3, test-framework >= 0.3,
-                      test-framework-quickcheck2 >= 0.2
+    build-depends: array > 0 && < 10000,
+                   base > 4.3 && < 7,
+                   binary > 0 && < 10000,
+                   bytestring > 0.8 && < 10000,
+                   QuickCheck >= 2.5 && < 3,
+                   test-framework >= 0.8.0.3 && < 10000,
+                   test-framework-quickcheck2 >= 0.3.0.2 && < 10000
   else
     buildable: False
   Main-Is: Test.hs
@@ -62,9 +65,12 @@ Executable test_sha
   if impl(ghc >= 6.12)
     Ghc-Options: -fregs-graph
 
-
 Executable sha1
-  build-depends: base >= 4 && < 6, bytestring, binary, array, directory
+  build-depends: array > 0 && < 10000,
+                 base >= 4 && < 6,
+                 binary > 0.0 && < 10000,
+                 bytestring > 0.8 && < 10000,
+                 directory > 0 && < 10000
   Main-Is: Main.hs
 
   extensions: CPP, BangPatterns
@@ -79,7 +85,11 @@ Executable sha1
     buildable: False
 
 Executable sha384
-  build-depends: base >= 4 && < 6, bytestring, binary, array, directory
+  build-depends: array > 0 && < 10000,
+                 base >= 4 && < 6,
+                 binary > 0.0 && < 10000,
+                 bytestring > 0.8 && < 10000,
+                 directory > 0 && < 10000
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
                -funbox-strict-fields -fwarn-tabs
   Main-Is: Main.hs
