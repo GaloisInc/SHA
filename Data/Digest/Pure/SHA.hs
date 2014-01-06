@@ -11,10 +11,20 @@ module Data.Digest.Pure.SHA
        , bytestringDigest
          -- * Calculating hashes
        , sha1
+       , sha1Incremental
+       , completeSha1Incremental
        , sha224
+       , sha224Incremental
+       , completeSha224Incremental
        , sha256
+       , sha256Incremental
+       , completeSha256Incremental
        , sha384
+       , sha384Incremental
+       , completeSha384Incremental
        , sha512
+       , sha512Incremental
+       , completeSha512Incremental
          -- * Calculating message authentication codes (MACs)
        , hmacSha1
        , hmacSha224
@@ -25,6 +35,7 @@ module Data.Digest.Pure.SHA
        , toBigEndianSBS, fromBigEndianSBS
        , calc_k
        , padSHA1, padSHA512
+       , padSHA1Chunks, padSHA512Chunks
 #endif
        )
  where
@@ -37,6 +48,7 @@ import Data.ByteString.Lazy(ByteString)
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString as SBS
 import Data.Char (intToDigit)
+import Data.List (foldl')
 
 -- | An abstract datatype for digests.
 newtype Digest t = Digest ByteString deriving (Eq,Ord)
@@ -204,8 +216,14 @@ instance Binary SHA512State where
 padSHA1 :: ByteString -> ByteString
 padSHA1 = generic_pad 448 512 64
 
+padSHA1Chunks :: Int -> [SBS.ByteString]
+padSHA1Chunks = generic_pad_chunks 448 512 64
+
 padSHA512 :: ByteString -> ByteString
 padSHA512 = generic_pad 896 1024 128
+
+padSHA512Chunks :: Int -> [SBS.ByteString]
+padSHA512Chunks = generic_pad_chunks 896 1024 128
 
 generic_pad :: Word64 -> Word64 -> Int -> ByteString -> ByteString
 generic_pad a b lSize bs =
@@ -217,16 +235,18 @@ generic_pad a b lSize bs =
   -- of input. If the length is computed before the computation of the hash, it
   -- will break the lazy evaluation of the input and no longer run in constant
   -- memory space.
-  go !len [] =
-    let lenBits = fromIntegral $ len * 8
-        k = calc_k a b lenBits
-        -- INVARIANT: k is necessarily > 0, and (k + 1) is a multiple of 8.
-        kBytes = (k + 1) `div` 8
-        nZeroBytes = fromIntegral $! kBytes - 1
-        padLength = toBigEndianSBS lSize lenBits
-    in [SBS.singleton 0x80, SBS.replicate nZeroBytes 0, padLength]
-  go !len (c:cs) =
-      c : go (len + SBS.length c) cs
+  go !len [] = generic_pad_chunks a b lSize len
+  go !len (c:cs) = c : go (len + SBS.length c) cs
+
+generic_pad_chunks :: Word64 -> Word64 -> Int -> Int -> [SBS.ByteString]
+generic_pad_chunks a b lSize len =
+  let lenBits = fromIntegral $ len * 8
+      k = calc_k a b lenBits
+      -- INVARIANT: k is necessarily > 0, and (k + 1) is a multiple of 8.
+      kBytes = (k + 1) `div` 8
+      nZeroBytes = fromIntegral $! kBytes - 1
+      padLength = toBigEndianSBS lSize lenBits
+  in [SBS.singleton 0x80, SBS.replicate nZeroBytes 0, padLength]
 
 -- Given a, b, and l, calculate the smallest k such that (l + 1 + k) mod b = a.
 calc_k :: Word64 -> Word64 -> Word64 -> Word64
@@ -948,6 +968,24 @@ runSHA s nextChunk input = runGet (getAll s) input
       then return s_in
       else nextChunk s_in >>= getAll
 
+runSHAIncremental :: a -> (a -> Get a) -> Decoder a
+runSHAIncremental s nextChunk = runGetIncremental (getAll s)
+ where
+  getAll s_in = do
+    done <- isEmpty
+    if done
+      then return s_in
+      else nextChunk s_in >>= getAll
+
+generic_complete :: (t -> [SBS.ByteString]) -> (a -> Put) -> Decoder a -> t
+  -> Digest a
+generic_complete pad synthesize decoder len =
+  let decoder' = pushEndOfInput $ foldl' pushChunk decoder $ pad len
+  in case decoder' of
+       Fail _ _ _ -> error "Decoder is in Fail state."
+       Partial _ -> error "Decoder is in Partial state."
+       Done _ _ x -> Digest $ runPut $! synthesize x
+
 -- |Compute the SHA-1 hash of the given ByteString. The output is guaranteed
 -- to be exactly 160 bits, or 20 bytes, long. This is a good default for
 -- programs that need a good, but not necessarily hyper-secure, hash function.
@@ -957,6 +995,15 @@ sha1 bs_in = Digest bs_out
   bs_pad = padSHA1 bs_in
   fstate = runSHA initialSHA1State processSHA1Block bs_pad
   bs_out = runPut $! synthesizeSHA1 fstate
+
+-- |Similar to `sha1` but use an incremental interface. When the decoder has
+-- been completely fed, `completeSha1Incremental` must be used so it can
+-- finish successfully.
+sha1Incremental :: Decoder SHA1State
+sha1Incremental = runSHAIncremental initialSHA1State processSHA1Block
+
+completeSha1Incremental :: Decoder SHA1State -> Int -> Digest SHA1State
+completeSha1Incremental = generic_complete padSHA1Chunks synthesizeSHA1
 
 -- |Compute the SHA-224 hash of the given ByteString. Note that SHA-224 and
 -- SHA-384 differ only slightly from SHA-256 and SHA-512, and use truncated
@@ -969,6 +1016,15 @@ sha224 bs_in = Digest bs_out
   fstate = runSHA initialSHA224State processSHA256Block bs_pad
   bs_out = runPut $! synthesizeSHA224 fstate
 
+-- |Similar to `sha224` but use an incremental interface. When the decoder has
+-- been completely fed, `completeSha224Incremental` must be used so it can
+-- finish successfully.
+sha224Incremental :: Decoder SHA256State
+sha224Incremental = runSHAIncremental initialSHA224State processSHA256Block
+
+completeSha224Incremental :: Decoder SHA256State -> Int -> Digest SHA256State
+completeSha224Incremental = generic_complete padSHA1Chunks synthesizeSHA224
+
 -- |Compute the SHA-256 hash of the given ByteString. The output is guaranteed
 -- to be exactly 256 bits, or 32 bytes, long. If your security requirements
 -- are pretty serious, this is a good choice. For truly significant security
@@ -980,6 +1036,15 @@ sha256 bs_in = Digest bs_out
   fstate = runSHA initialSHA256State processSHA256Block bs_pad
   bs_out = runPut $! synthesizeSHA256 fstate
 
+-- |Similar to `sha256` but use an incremental interface. When the decoder has
+-- been completely fed, `completeSha256Incremental` must be used so it can
+-- finish successfully.
+sha256Incremental :: Decoder SHA256State
+sha256Incremental = runSHAIncremental initialSHA256State processSHA256Block
+
+completeSha256Incremental :: Decoder SHA256State -> Int -> Digest SHA256State
+completeSha256Incremental = generic_complete padSHA1Chunks synthesizeSHA256
+
 -- |Compute the SHA-384 hash of the given ByteString. Yup, you guessed it,
 -- the output will be exactly 384 bits, or 48 bytes, long.
 sha384 :: ByteString -> Digest SHA512State
@@ -988,6 +1053,15 @@ sha384 bs_in = Digest bs_out
   bs_pad = padSHA512 bs_in
   fstate = runSHA initialSHA384State processSHA512Block bs_pad
   bs_out = runPut $! synthesizeSHA384 fstate
+
+-- |Similar to `sha384` but use an incremental interface. When the decoder has
+-- been completely fed, `completeSha384Incremental` must be used so it can
+-- finish successfully.
+sha384Incremental :: Decoder SHA512State
+sha384Incremental = runSHAIncremental initialSHA384State processSHA512Block
+
+completeSha384Incremental :: Decoder SHA512State -> Int -> Digest SHA512State
+completeSha384Incremental = generic_complete padSHA512Chunks synthesizeSHA384
 
 -- |For those for whom only the biggest hashes will do, this computes the
 -- SHA-512 hash of the given ByteString. The output will be 64 bytes, or
@@ -998,6 +1072,15 @@ sha512 bs_in = Digest bs_out
   bs_pad = padSHA512 bs_in
   fstate = runSHA initialSHA512State processSHA512Block bs_pad
   bs_out = runPut $! synthesizeSHA512 fstate
+
+-- |Similar to `sha512` but use an incremental interface. When the decoder has
+-- been completely fed, `completeSha512Incremental` must be used so it can
+-- finish successfully.
+sha512Incremental :: Decoder SHA512State
+sha512Incremental = runSHAIncremental initialSHA512State processSHA512Block
+
+completeSha512Incremental :: Decoder SHA512State -> Int -> Digest SHA512State
+completeSha512Incremental = generic_complete padSHA512Chunks synthesizeSHA512
 
 -- --------------------------------------------------------------------------
 
