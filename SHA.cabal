@@ -1,6 +1,6 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.6.2.1
+version:    1.6.3
 license:    BSD3
 license-file: LICENSE
 author:     Adam Wick <awick@galois.com>, Brian Lewis <brian@lorf.org>
@@ -34,7 +34,7 @@ Flag base_tf_bug
 Library
   build-depends: array > 0 && < 10000,
                  base >= 4 && < 6,
-                 binary > 0.0 && < 10000,
+                 binary >= 0.7 && < 10000,
                  bytestring > 0.8 && < 10000
   exposed-modules: Data.Digest.Pure.SHA
   GHC-Options: -Wall -fno-ignore-asserts -fno-warn-orphans
@@ -47,7 +47,7 @@ Executable test_sha
   if flag(test)
     build-depends: array > 0 && < 10000,
                    base > 4.3 && < 7,
-                   binary > 0 && < 10000,
+                   binary >= 0.7 && < 10000,
                    bytestring > 0.8 && < 10000,
                    QuickCheck >= 2.5 && < 3,
                    test-framework >= 0.8.0.3 && < 10000,
@@ -68,7 +68,7 @@ Executable test_sha
 Executable sha1
   build-depends: array > 0 && < 10000,
                  base >= 4 && < 6,
-                 binary > 0.0 && < 10000,
+                 binary >= 0.7 && < 10000,
                  bytestring > 0.8 && < 10000,
                  directory > 0 && < 10000
   Main-Is: Main.hs
@@ -87,7 +87,7 @@ Executable sha1
 Executable sha384
   build-depends: array > 0 && < 10000,
                  base >= 4 && < 6,
-                 binary > 0.0 && < 10000,
+                 binary >= 0.7 && < 10000,
                  bytestring > 0.8 && < 10000,
                  directory > 0 && < 10000
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
