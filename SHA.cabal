@@ -76,10 +76,11 @@ Executable sha1
   if !flag(exe)
     buildable: False
   hs-source-dirs: src-bin
-  build-depends: base >= 4 && < 6,
-                 bytestring > 0.8 && < 10000,
-                 directory > 0.0 && < 10000,
-                 SHA > 1.6 && < 10000
+  if flag(exe)
+    build-depends: base >= 4 && < 6,
+                   bytestring > 0.8 && < 10000,
+                   directory > 0.0 && < 10000,
+                   SHA > 1.6 && < 10000
   Main-Is: Main.hs
   extensions: CPP
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
@@ -90,10 +91,11 @@ Executable sha384
   if !flag(exe)
     buildable: False
   hs-source-dirs: src-bin
-  build-depends: base >= 4 && < 6,
-                 bytestring > 0.8 && < 10000,
-                 directory > 0.0 && < 10000,
-                 SHA > 1.6 && < 10000
+  if flag(exe)
+    build-depends: base >= 4 && < 6,
+                   bytestring > 0.8 && < 10000,
+                   directory > 0.0 && < 10000,
+                   SHA > 1.6 && < 10000
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
                -funbox-strict-fields -fwarn-tabs
   Main-Is: Main.hs
