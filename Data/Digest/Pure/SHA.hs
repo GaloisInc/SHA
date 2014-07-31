@@ -58,15 +58,15 @@ instance Show (Digest t) where
 
 instance Binary (Digest SHA1State) where
   get = Digest `fmap` getLazyByteString 20
-  put (Digest bs) = put bs
+  put (Digest bs) = putLazyByteString bs
 
 instance Binary (Digest SHA256State) where
   get = Digest `fmap` getLazyByteString 32
-  put (Digest bs) = put bs
+  put (Digest bs) = putLazyByteString bs
 
 instance Binary (Digest SHA512State) where
   get = Digest `fmap` getLazyByteString 64
-  put (Digest bs) = put bs
+  put (Digest bs) = putLazyByteString bs
 
 -- --------------------------------------------------------------------------
 --
