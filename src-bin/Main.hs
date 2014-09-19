@@ -1,6 +1,7 @@
 import Control.Monad
 import Data.Digest.Pure.SHA
 import qualified Data.ByteString.Lazy as BS
+import Hexdump
 import System.Directory
 import System.Environment
 import System.Exit
@@ -29,7 +30,8 @@ sha_file bname prevEC fname = do
       return $ ExitFailure 22 -- EINVAL
     (True,  _)     -> do
       conts <- BS.readFile fname
-      putStrLn $ bname ++ " (" ++ fname ++ ") = " ++ show (ALGORITHM conts)
+      putStrLn $ bname ++ " (" ++ fname ++ ") = " ++
+                 filter (/= ' ') (simpleHex (BS.toStrict (ALGORITHM conts)))
       return $ combineExitCodes prevEC ExitSuccess
 
 combineExitCodes :: ExitCode -> ExitCode -> ExitCode
