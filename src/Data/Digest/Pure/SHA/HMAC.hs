@@ -5,6 +5,7 @@ module Data.Digest.Pure.SHA.HMAC(
        , hmacSha256
        , hmacSha384
        , hmacSha512
+       , hmac
        )
  where
 
