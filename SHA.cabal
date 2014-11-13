@@ -19,53 +19,36 @@ description: This library implements the SHA suite of message digest functions,
              these do not presently reach the speed of well-tuned libraries, 
              like OpenSSL.
 
-Flag test
-  Description: Build the SHA test suite.
-  Default: False
-
 Flag exe
-  Description: Build a sha1 and a sha384 executable similar to 'md5sum'.
+  Description: Build a sha executables similar to 'md5sum'.
   Default: False
-
-Flag DecoderInterface
-  Description: Force SHA to build with support for binary's Decoder.
 
 Library
   hs-source-dirs: src
   build-depends: array > 0 && < 10000,
                  base >= 4 && < 6,
+                 binary >= 0.7 && < 10000,
                  bytestring > 0.8 && < 10000
-  if flag(DecoderInterface)
-    build-depends: binary >= 0.7 && < 10000
-    cpp-options: -DINCLUDE_DECODER_INTERFACE
-  else
-    build-depends: binary >= 0 && < 0.7
   exposed-modules: Data.Digest.Pure.SHA
   GHC-Options: -Wall -fno-ignore-asserts -fno-warn-orphans
                -funbox-strict-fields -fwarn-tabs
-  extensions: CPP, BangPatterns
+  extensions: BangPatterns
   if impl(ghc >= 6.12) && impl(ghc < 7.7)
     Ghc-Options: -fregs-graph
 
-Executable test_sha
-  hs-source-dirs: src
-  if flag(test)
-    build-depends: array > 0 && < 10000,
-                   base > 4.3 && < 7,
-                   bytestring > 0.8 && < 10000,
-                   QuickCheck >= 2.5 && < 3,
-                   test-framework >= 0.8.0.3 && < 10000,
-                   test-framework-quickcheck2 >= 0.3.0.2 && < 10000
-    if flag(DecoderInterface)
-      build-depends: binary >= 0.7 && < 10000
-      cpp-options: -DINCLUDE_DECODER_INTERFACE
-    else
-      build-depends: binary >= 0 && < 0.7
-  else
-    buildable: False
-  Main-Is: Test.hs
-  Other-Modules: Data.Digest.Pure.SHA
-  extensions: CPP, BangPatterns, MultiParamTypeClasses, DeriveDataTypeable
+test-suite test-sha
+  type:            exitcode-stdio-1.0
+  hs-source-dirs:  src
+  main-is:         Test.hs
+  ghc-options:     -Wall -fhpc
+  build-depends: array > 0 && < 10000,
+                 base > 4.3 && < 7,
+                 binary >= 0.7 && < 10000,
+                 bytestring > 0.8 && < 10000,
+                 QuickCheck >= 2.5 && < 3,
+                 test-framework >= 0.8.0.3 && < 10000,
+                 test-framework-quickcheck2 >= 0.3.0.2 && < 10000
+  extensions: BangPatterns, MultiParamTypeClasses, DeriveDataTypeable
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
                -funbox-strict-fields -fwarn-tabs
   cpp-options: -DSHA_TEST
@@ -76,31 +59,71 @@ Executable sha1
   if !flag(exe)
     buildable: False
   hs-source-dirs: src-bin
-  if flag(exe)
-    build-depends: base >= 4 && < 6,
-                   bytestring > 0.8 && < 10000,
-                   directory > 0.0 && < 10000,
-                   SHA > 1.6 && < 10000
+  build-depends: base >= 4 && < 6,
+                 bytestring > 0.8 && < 10000,
+                 directory > 0.0 && < 10000,
+                 SHA > 1.6 && < 10000
   Main-Is: Main.hs
   extensions: CPP
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
                -funbox-strict-fields -fwarn-tabs
   cpp-options: -DALGORITHM=sha1
 
+Executable sha224
+  if !flag(exe)
+    buildable: False
+  hs-source-dirs: src-bin
+  build-depends: base >= 4 && < 6,
+                 bytestring > 0.8 && < 10000,
+                 directory > 0.0 && < 10000,
+                 SHA > 1.6 && < 10000
+  Main-Is: Main.hs
+  extensions: CPP
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
+  cpp-options: -DALGORITHM=sha224
+
+Executable sha256
+  if !flag(exe)
+    buildable: False
+  hs-source-dirs: src-bin
+  build-depends: base >= 4 && < 6,
+                 bytestring > 0.8 && < 10000,
+                 directory > 0.0 && < 10000,
+                 SHA > 1.6 && < 10000
+  Main-Is: Main.hs
+  extensions: CPP
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
+  cpp-options: -DALGORITHM=sha256
+
 Executable sha384
   if !flag(exe)
     buildable: False
   hs-source-dirs: src-bin
-  if flag(exe)
-    build-depends: base >= 4 && < 6,
-                   bytestring > 0.8 && < 10000,
-                   directory > 0.0 && < 10000,
-                   SHA > 1.6 && < 10000
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
-               -funbox-strict-fields -fwarn-tabs
+  build-depends: base >= 4 && < 6,
+                 bytestring > 0.8 && < 10000,
+                 directory > 0.0 && < 10000,
+                 SHA > 1.6 && < 10000
   Main-Is: Main.hs
   extensions: CPP
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
   cpp-options: -DALGORITHM=sha384
+
+Executable sha512
+  if !flag(exe)
+    buildable: False
+  hs-source-dirs: src-bin
+  build-depends: base >= 4 && < 6,
+                 bytestring > 0.8 && < 10000,
+                 directory > 0.0 && < 10000,
+                 SHA > 1.6 && < 10000
+  Main-Is: Main.hs
+  extensions: CPP
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
+  cpp-options: -DALGORITHM=sha512
 
 source-repository head
   type:     git

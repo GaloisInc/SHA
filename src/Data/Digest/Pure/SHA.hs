@@ -15,7 +15,6 @@ module Data.Digest.Pure.SHA
        , sha256
        , sha384
        , sha512
-#ifdef INCLUDE_DECODER_INTERFACE
        , sha1Incremental
        , completeSha1Incremental
        , sha224Incremental
@@ -26,19 +25,17 @@ module Data.Digest.Pure.SHA
        , completeSha384Incremental
        , sha512Incremental
        , completeSha512Incremental
-#endif
          -- * Calculating message authentication codes (MACs)
        , hmacSha1
        , hmacSha224
        , hmacSha256
        , hmacSha384
        , hmacSha512
-#ifdef SHA_TEST
+         -- * Internal routines included for testing
        , toBigEndianSBS, fromBigEndianSBS
        , calc_k
        , padSHA1, padSHA512
        , padSHA1Chunks, padSHA512Chunks
-#endif
        )
  where
  
@@ -50,10 +47,7 @@ import Data.ByteString.Lazy(ByteString)
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString as SBS
 import Data.Char (intToDigit)
-
-#ifdef INCLUDE_DECODER_INTERFACE
 import Data.List (foldl')
-#endif
 
 -- | An abstract datatype for digests.
 newtype Digest t = Digest ByteString deriving (Eq,Ord)
@@ -221,18 +215,14 @@ instance Binary SHA512State where
 padSHA1 :: ByteString -> ByteString
 padSHA1 = generic_pad 448 512 64
 
-#if defined(INCLUDE_DECODER_INTERFACE) || defined(SHA_TEST)
 padSHA1Chunks :: Int -> [SBS.ByteString]
 padSHA1Chunks = generic_pad_chunks 448 512 64
-#endif
 
 padSHA512 :: ByteString -> ByteString
 padSHA512 = generic_pad 896 1024 128
 
-#if defined(INCLUDE_DECODER_INTERFACE) || defined(SHA_TEST)
 padSHA512Chunks :: Int -> [SBS.ByteString]
 padSHA512Chunks = generic_pad_chunks 896 1024 128
-#endif
 
 generic_pad :: Word64 -> Word64 -> Int -> ByteString -> ByteString
 generic_pad a b lSize bs =
@@ -271,11 +261,9 @@ toBigEndianSBS s val = SBS.pack $ map getBits [s - 8, s - 16 .. 0]
  where
    getBits x = fromIntegral $ (val `shiftR` x) .&. 0xFF
 
-#ifdef SHA_TEST
 fromBigEndianSBS :: (Integral a, Bits a) => SBS.ByteString -> a
 fromBigEndianSBS =
   SBS.foldl (\ acc x -> (acc `shiftL` 8) + fromIntegral x) 0
-#endif
 
 -- --------------------------------------------------------------------------
 --
@@ -977,7 +965,6 @@ runSHA s nextChunk input = runGet (getAll s) input
       then return s_in
       else nextChunk s_in >>= getAll
 
-#ifdef INCLUDE_DECODER_INTERFACE
 runSHAIncremental :: a -> (a -> Get a) -> Decoder a
 runSHAIncremental s nextChunk = runGetIncremental (getAll s)
  where
@@ -995,7 +982,6 @@ generic_complete pad synthesize decoder len =
        Fail _ _ _ -> error "Decoder is in Fail state."
        Partial _ -> error "Decoder is in Partial state."
        Done _ _ x -> Digest $ runPut $! synthesize x
-#endif
 
 -- |Compute the SHA-1 hash of the given ByteString. The output is guaranteed
 -- to be exactly 160 bits, or 20 bytes, long. This is a good default for
@@ -1007,7 +993,6 @@ sha1 bs_in = Digest bs_out
   fstate = runSHA initialSHA1State processSHA1Block bs_pad
   bs_out = runPut $! synthesizeSHA1 fstate
 
-#ifdef INCLUDE_DECODER_INTERFACE
 -- |Similar to `sha1` but use an incremental interface. When the decoder has
 -- been completely fed, `completeSha1Incremental` must be used so it can
 -- finish successfully.
@@ -1016,7 +1001,6 @@ sha1Incremental = runSHAIncremental initialSHA1State processSHA1Block
 
 completeSha1Incremental :: Decoder SHA1State -> Int -> Digest SHA1State
 completeSha1Incremental = generic_complete padSHA1Chunks synthesizeSHA1
-#endif
 
 -- |Compute the SHA-224 hash of the given ByteString. Note that SHA-224 and
 -- SHA-384 differ only slightly from SHA-256 and SHA-512, and use truncated
@@ -1029,7 +1013,6 @@ sha224 bs_in = Digest bs_out
   fstate = runSHA initialSHA224State processSHA256Block bs_pad
   bs_out = runPut $! synthesizeSHA224 fstate
 
-#ifdef INCLUDE_DECODER_INTERFACE
 -- |Similar to `sha224` but use an incremental interface. When the decoder has
 -- been completely fed, `completeSha224Incremental` must be used so it can
 -- finish successfully.
@@ -1038,7 +1021,6 @@ sha224Incremental = runSHAIncremental initialSHA224State processSHA256Block
 
 completeSha224Incremental :: Decoder SHA256State -> Int -> Digest SHA256State
 completeSha224Incremental = generic_complete padSHA1Chunks synthesizeSHA224
-#endif
 
 -- |Compute the SHA-256 hash of the given ByteString. The output is guaranteed
 -- to be exactly 256 bits, or 32 bytes, long. If your security requirements
@@ -1051,7 +1033,6 @@ sha256 bs_in = Digest bs_out
   fstate = runSHA initialSHA256State processSHA256Block bs_pad
   bs_out = runPut $! synthesizeSHA256 fstate
 
-#ifdef INCLUDE_DECODER_INTERFACE
 -- |Similar to `sha256` but use an incremental interface. When the decoder has
 -- been completely fed, `completeSha256Incremental` must be used so it can
 -- finish successfully.
@@ -1060,7 +1041,6 @@ sha256Incremental = runSHAIncremental initialSHA256State processSHA256Block
 
 completeSha256Incremental :: Decoder SHA256State -> Int -> Digest SHA256State
 completeSha256Incremental = generic_complete padSHA1Chunks synthesizeSHA256
-#endif
 
 -- |Compute the SHA-384 hash of the given ByteString. Yup, you guessed it,
 -- the output will be exactly 384 bits, or 48 bytes, long.
@@ -1071,7 +1051,6 @@ sha384 bs_in = Digest bs_out
   fstate = runSHA initialSHA384State processSHA512Block bs_pad
   bs_out = runPut $! synthesizeSHA384 fstate
 
-#ifdef INCLUDE_DECODER_INTERFACE
 -- |Similar to `sha384` but use an incremental interface. When the decoder has
 -- been completely fed, `completeSha384Incremental` must be used so it can
 -- finish successfully.
@@ -1080,7 +1059,6 @@ sha384Incremental = runSHAIncremental initialSHA384State processSHA512Block
 
 completeSha384Incremental :: Decoder SHA512State -> Int -> Digest SHA512State
 completeSha384Incremental = generic_complete padSHA512Chunks synthesizeSHA384
-#endif
 
 -- |For those for whom only the biggest hashes will do, this computes the
 -- SHA-512 hash of the given ByteString. The output will be 64 bytes, or
@@ -1092,7 +1070,6 @@ sha512 bs_in = Digest bs_out
   fstate = runSHA initialSHA512State processSHA512Block bs_pad
   bs_out = runPut $! synthesizeSHA512 fstate
 
-#ifdef INCLUDE_DECODER_INTERFACE
 -- |Similar to `sha512` but use an incremental interface. When the decoder has
 -- been completely fed, `completeSha512Incremental` must be used so it can
 -- finish successfully.
@@ -1101,7 +1078,6 @@ sha512Incremental = runSHAIncremental initialSHA512State processSHA512Block
 
 completeSha512Incremental :: Decoder SHA512State -> Int -> Digest SHA512State
 completeSha512Incremental = generic_complete padSHA512Chunks synthesizeSHA512
-#endif
 
 -- --------------------------------------------------------------------------
 
