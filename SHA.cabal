@@ -40,7 +40,10 @@ test-suite test-sha
   type:            exitcode-stdio-1.0
   hs-source-dirs:  src
   main-is:         Test.hs
-  ghc-options:     -Wall -fhpc
+  if impl(ghc >= 7.8)
+    ghc-options:     -Wall -fhpc
+  else
+    ghc-options:     -Wall
   build-depends: array > 0 && < 10000,
                  base > 4.3 && < 7,
                  binary >= 0.7 && < 10000,
