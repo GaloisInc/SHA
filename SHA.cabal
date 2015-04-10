@@ -59,74 +59,79 @@ test-suite test-sha
     Ghc-Options: -fregs-graph
 
 Executable sha1
-  if !flag(exe)
-    buildable: False
-  hs-source-dirs: src-bin
-  build-depends: base >= 4 && < 6,
-                 bytestring > 0.8 && < 10000,
-                 directory > 0.0 && < 10000,
-                 SHA > 1.6 && < 10000
   Main-Is: Main.hs
-  extensions: CPP
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
-               -funbox-strict-fields -fwarn-tabs
-  cpp-options: -DALGORITHM=sha1
+  if flag(exe)
+    hs-source-dirs: src-bin
+    build-depends: base >= 4 && < 6,
+                   bytestring > 0.8 && < 10000,
+                   directory > 0.0 && < 10000,
+                   SHA > 1.6 && < 10000
+    extensions: CPP
+    GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+                 -funbox-strict-fields -fwarn-tabs
+    cpp-options: -DALGORITHM=sha1
+  else 
+    buildable: False
 
 Executable sha224
-  if !flag(exe)
-    buildable: False
-  hs-source-dirs: src-bin
-  build-depends: base >= 4 && < 6,
-                 bytestring > 0.8 && < 10000,
-                 directory > 0.0 && < 10000,
-                 SHA > 1.6 && < 10000
   Main-Is: Main.hs
-  extensions: CPP
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
-               -funbox-strict-fields -fwarn-tabs
-  cpp-options: -DALGORITHM=sha224
+  if flag(exe)
+    hs-source-dirs: src-bin
+    build-depends: base >= 4 && < 6,
+                   bytestring > 0.8 && < 10000,
+                   directory > 0.0 && < 10000,
+                   SHA > 1.6 && < 10000
+    extensions: CPP
+    GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+                 -funbox-strict-fields -fwarn-tabs
+    cpp-options: -DALGORITHM=sha224
+  else
+    buildable: False
 
 Executable sha256
-  if !flag(exe)
-    buildable: False
-  hs-source-dirs: src-bin
-  build-depends: base >= 4 && < 6,
-                 bytestring > 0.8 && < 10000,
-                 directory > 0.0 && < 10000,
-                 SHA > 1.6 && < 10000
   Main-Is: Main.hs
-  extensions: CPP
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
-               -funbox-strict-fields -fwarn-tabs
-  cpp-options: -DALGORITHM=sha256
+  if flag(exe)
+    hs-source-dirs: src-bin
+    build-depends: base >= 4 && < 6,
+                   bytestring > 0.8 && < 10000,
+                   directory > 0.0 && < 10000,
+                   SHA > 1.6 && < 10000
+    extensions: CPP
+    GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+                 -funbox-strict-fields -fwarn-tabs
+    cpp-options: -DALGORITHM=sha256
+  else
+    buildable: False
 
 Executable sha384
-  if !flag(exe)
-    buildable: False
-  hs-source-dirs: src-bin
-  build-depends: base >= 4 && < 6,
-                 bytestring > 0.8 && < 10000,
-                 directory > 0.0 && < 10000,
-                 SHA > 1.6 && < 10000
   Main-Is: Main.hs
-  extensions: CPP
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
-               -funbox-strict-fields -fwarn-tabs
-  cpp-options: -DALGORITHM=sha384
+  if flag(exe)
+    hs-source-dirs: src-bin
+    build-depends: base >= 4 && < 6,
+                   bytestring > 0.8 && < 10000,
+                   directory > 0.0 && < 10000,
+                   SHA > 1.6 && < 10000
+    extensions: CPP
+    GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+                 -funbox-strict-fields -fwarn-tabs
+    cpp-options: -DALGORITHM=sha384
+  else
+    buildable: False
 
 Executable sha512
-  if !flag(exe)
-    buildable: False
-  hs-source-dirs: src-bin
-  build-depends: base >= 4 && < 6,
-                 bytestring > 0.8 && < 10000,
-                 directory > 0.0 && < 10000,
-                 SHA > 1.6 && < 10000
   Main-Is: Main.hs
-  extensions: CPP
-  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
-               -funbox-strict-fields -fwarn-tabs
-  cpp-options: -DALGORITHM=sha512
+  if flag(exe)
+    hs-source-dirs: src-bin
+    build-depends: base >= 4 && < 6,
+                   bytestring > 0.8 && < 10000,
+                   directory > 0.0 && < 10000,
+                   SHA > 1.6 && < 10000
+    extensions: CPP
+    GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+                 -funbox-strict-fields -fwarn-tabs
+    cpp-options: -DALGORITHM=sha512
+  else
+    buildable: False
 
 source-repository head
   type:     git
