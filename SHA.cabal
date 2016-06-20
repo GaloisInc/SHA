@@ -55,7 +55,7 @@ test-suite test-sha
   GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
                -funbox-strict-fields -fwarn-tabs
   cpp-options: -DSHA_TEST
-  if impl(ghc >= 6.12)
+  if impl(ghc >= 6.12) && impl(ghc < 7.7)
     Ghc-Options: -fregs-graph
 
 Executable sha1
