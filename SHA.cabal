@@ -1,6 +1,6 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.6.4.2
+version:    1.6.4.3
 license:    BSD3
 license-file: LICENSE
 author:     Adam Wick <awick@galois.com>, Brian Lewis <brian@lorf.org>
@@ -70,6 +70,8 @@ Executable sha1
     GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
                  -funbox-strict-fields -fwarn-tabs
     cpp-options: -DALGORITHM=sha1
+    if impl(ghc >= 6.12) && impl(ghc < 7.7)
+      Ghc-Options: -fregs-graph
   else 
     buildable: False
 
@@ -85,6 +87,8 @@ Executable sha224
     GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
                  -funbox-strict-fields -fwarn-tabs
     cpp-options: -DALGORITHM=sha224
+    if impl(ghc >= 6.12) && impl(ghc < 7.7)
+      Ghc-Options: -fregs-graph
   else
     buildable: False
 
@@ -100,6 +104,8 @@ Executable sha256
     GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
                  -funbox-strict-fields -fwarn-tabs
     cpp-options: -DALGORITHM=sha256
+    if impl(ghc >= 6.12) && impl(ghc < 7.7)
+      Ghc-Options: -fregs-graph
   else
     buildable: False
 
@@ -115,6 +121,8 @@ Executable sha384
     GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
                  -funbox-strict-fields -fwarn-tabs
     cpp-options: -DALGORITHM=sha384
+    if impl(ghc >= 6.12) && impl(ghc < 7.7)
+      Ghc-Options: -fregs-graph
   else
     buildable: False
 
@@ -130,6 +138,8 @@ Executable sha512
     GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
                  -funbox-strict-fields -fwarn-tabs
     cpp-options: -DALGORITHM=sha512
+    if impl(ghc >= 6.12) && impl(ghc < 7.7)
+      Ghc-Options: -fregs-graph
   else
     buildable: False
 
