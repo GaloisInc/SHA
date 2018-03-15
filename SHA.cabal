@@ -1,6 +1,6 @@
 name:       SHA
 category:   Cryptography, Codec
-version:    1.6.4.3
+version:    1.6.4.4
 license:    BSD3
 license-file: LICENSE
 author:     Adam Wick <awick@galois.com>, Brian Lewis <brian@lorf.org>
@@ -40,10 +40,7 @@ test-suite test-sha
   type:            exitcode-stdio-1.0
   hs-source-dirs:  src
   main-is:         Test.hs
-  if impl(ghc >= 7.8)
-    ghc-options:     -Wall -fhpc
-  else
-    ghc-options:     -Wall
+  ghc-options:     -Wall
   build-depends: array > 0 && < 10000,
                  base > 4.3 && < 7,
                  binary >= 0.7 && < 10000,
