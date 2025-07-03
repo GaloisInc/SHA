@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns, CPP, FlexibleInstances #-}
+{-# LANGUAGE DerivingStrategies, GeneralizedNewtypeDeriving #-}
 -- |Pure implementations of the SHA suite of hash functions. The implementation
 -- is basically an unoptimized translation of FIPS 180-2 into Haskell. If you're
 -- looking for performance, you probably won't find it here.
@@ -38,7 +39,8 @@ module Data.Digest.Pure.SHA
        , padSHA1Chunks, padSHA512Chunks
        )
  where
- 
+
+import Control.DeepSeq
 import Data.Binary
 import Data.Binary.Get
 import Data.Binary.Put
@@ -47,10 +49,12 @@ import Data.ByteString.Lazy(ByteString)
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString as SBS
 import Data.Char (intToDigit)
+#if !MIN_VERSION_base(4,20,0)
 import Data.List (foldl')
+#endif
 
 -- | An abstract datatype for digests.
-newtype Digest t = Digest ByteString deriving (Eq,Ord)
+newtype Digest t = Digest ByteString deriving stock (Eq,Ord) deriving newtype (NFData)
 
 instance Show (Digest t) where
   show = showDigest
